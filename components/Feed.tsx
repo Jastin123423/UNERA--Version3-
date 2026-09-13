@@ -1235,8 +1235,6 @@ const postPropsEqual = () => false;
 
 const eventPostPropsEqual = () => false;
 
-const reelCardPropsEqual = () => false;
-
 
 
 
@@ -2571,265 +2569,6 @@ export const isReelPost = (item: any): boolean => {
     (item?.video && (item?.audio_url || item?.song_name))
   );
 };
-
-export const ReelFeedCard = memo(
-  ({
-    reel,
-    onOpen,
-    onOpenMenu,
-    onProfileClick,
-  }: {
-    reel: ReelFeedData;
-    onOpen?: (reelId: number | string) => void;
-    onOpenMenu?: (reel: ReelFeedData) => void;
-    onProfileClick?: (userId: number | string) => void;
-  }) => {
-    const openReel = () => {
-      onOpen?.(reel.id);
-    };
-    const handleProfileClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onProfileClick?.(reel.user_id);
-    };
-
-    return (
-      <div
-        className="w-full"
-        style={{
-          background: '#1c1e21',
-          borderTop: '1px solid rgba(255,255,255,0.08)',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-          marginBottom: 10,
-          padding: '12px 0 14px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 14px 12px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Film size={22} color="#1877f2" />
-            <span style={{ fontSize: 24, fontWeight: 700, color: '#e4e6eb' }}>
-              Reels
-            </span>
-          </div>
-          <PostMenu
-            item={{
-              id: reel.id,
-              user_id: reel.user_id,
-              type: 'reel',
-              content: reel.caption,
-              caption: reel.caption,
-              author: reel.author,
-            }}
-            currentUser={{ id: Number(localStorage.getItem('user_id')) }}
-            onShare={(item) => {
-              console.log('Share reel:', item);
-            }}
-          />
-        </div>
-        <div
-          onClick={openReel}
-          style={{
-            position: 'relative',
-            width: 'calc(100% - 28px)',
-            margin: '0 14px',
-            aspectRatio: '9 / 16',
-            maxHeight: '75vh',
-            borderRadius: 24,
-            overflow: 'hidden',
-            background: '#111',
-            cursor: 'pointer',
-          }}
-        >
-          {reel.thumbnail ? (
-            <img
-              src={reel.thumbnail}
-              alt={reel.caption || 'Reel preview'}
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'block',
-                objectFit: 'cover',
-              }}
-            />
-          ) : (
-            <video
-              src={reel.video}
-              muted
-              playsInline
-              preload="metadata"
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'block',
-                objectFit: 'cover',
-              }}
-            />
-          )}
-
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background:
-                'linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.10), rgba(0,0,0,0.25))',
-            }}
-          />
-
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              pointerEvents: 'none',
-            }}
-          >
-            <div
-              style={{
-                width: 74,
-                height: 74,
-                borderRadius: '50%',
-                border: '3px solid rgba(255,255,255,0.95)',
-                background: 'rgba(255,255,255,0.12)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Play size={36} fill="#fff" color="#fff" style={{ marginLeft: 4 }} />
-            </div>
-          </div>
-
-          <div
-            style={{
-              position: 'absolute',
-              left: 14,
-              right: 14,
-              bottom: 12,
-              display: 'flex',
-              alignItems: 'flex-end',
-              justifyContent: 'space-between',
-              gap: 10,
-            }}
-          >
-            <div style={{ minWidth: 0 }}>
-              <div
-                style={{
-                  color: '#fff',
-                  fontSize: 17,
-                  fontWeight: 700,
-                  marginBottom: 6,
-                  textShadow: '0 1px 3px rgba(0,0,0,0.4)',
-                }}
-              >
-                {reel.author}
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  color: '#fff',
-                  fontSize: 16,
-                  fontWeight: 700,
-                  textShadow: '0 1px 3px rgba(0,0,0,0.4)',
-                }}
-              >
-                <Eye size={20} />
-                <span>{formatReelCount(reel.views)}</span>
-              </div>
-            </div>
-
-            <div
-              style={{
-                width: 42,
-                height: 42,
-                borderRadius: '50%',
-                overflow: 'hidden',
-                border: '2px solid #fff',
-                background: '#1877f2',
-                flexShrink: 0,
-              }}
-            >
-              {reel.avatar ? (
-                <img
-                  src={reel.avatar}
-                  alt={reel.author}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}
-                />
-              ) : (
-                <div
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: 18,
-                  }}
-                >
-                  {(reel.author || 'U').charAt(0).toUpperCase()}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {reel.songName && (
-            <div
-              style={{
-                position: 'absolute',
-                top: 12,
-                right: 12,
-                background: 'rgba(0,0,0,0.6)',
-                backdropFilter: 'blur(4px)',
-                padding: '4px 8px',
-                borderRadius: 20,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                border: '1px solid rgba(255,255,255,0.2)',
-              }}
-            >
-              <i
-                className="fas fa-music"
-                style={{ color: '#1877F2', fontSize: 12 }}
-              ></i>
-              <span
-                style={{
-                  color: '#fff',
-                  fontSize: 12,
-                  fontWeight: 'bold',
-                  maxWidth: 80,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {reel.songName}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  },
-  reelCardPropsEqual
-);
 
 //============ STORY CARD COMPONENTS =======
 
@@ -5897,7 +5636,7 @@ export const Post = memo(
     if (
       !isGroupPost &&
       !isMarketplace &&
-      (isVideoPost(p) || (videoMedia.length > 0 && !imageMedia.length) || p.media_type === 'video' || p.type === 'video')
+      (isVideoPost(p) || (videoMedia.length > 0 && !imageMedia.length) || p.media_type === 'video' || p.type === 'video' || p.type === 'reel' || p.post_type === 'reel' || p.kind === 'reel')
     ) {
       return (
         <article className="w-full relative bg-[#0F172A] border-b-[8px] border-[#050B18]">
@@ -8981,13 +8720,68 @@ export const Feed = memo(({
         }
 
         if (item.kind === "reel") {
+          const reel = item.data;
+          const authorId = Number(reel?.user_id || reel?.userId || 0);
+          const authorObj =
+            users?.find((u) => Number(u.id) === authorId) ||
+            reel?.user || {
+              id: authorId,
+              name: reel?.author || reel?.author_name || 'Creator',
+              username: reel?.username || (reel?.author || 'creator').toLowerCase().replace(/\s+/g, '_'),
+              profile_image_url: reel?.avatar || reel?.avatar_url,
+              is_verified: Boolean(reel?.verified),
+            };
+
+          const reelAsPost: any = {
+            id: reel?.id,
+            reel_id: reel?.id,
+            user_id: authorId,
+            content: reel?.caption || reel?.content || '',
+            caption: reel?.caption || reel?.content || '',
+            video_url: reel?.video_url || reel?.videoUrl || reel?.video || '',
+            media_url: reel?.video_url || reel?.videoUrl || reel?.video || '',
+            thumbnail_url: reel?.thumbnail_url || reel?.thumbnail || reel?.cover_url || '',
+            media_type: 'video',
+            type: 'video',
+            shares: reel?.shares || 0,
+            views: reel?.views || 0,
+            likes_count: reel?.likes_count || reel?.likes || 0,
+            likesCount: reel?.likes_count || reel?.likes || 0,
+            reactions_count: reel?.reactions_count || reel?.likes_count || reel?.likes || 0,
+            reactions: reel?.reactions || {},
+            comments: reel?.comments || [],
+            visibility: 'public',
+            created_at: reel?.created_at || item.created_at || new Date().toISOString(),
+            user: authorObj,
+            author: authorObj,
+          };
+
+          const isFollowing = checkIsFollowing?.(authorId) || false;
+
           return (
-            <ReelFeedCard
-              key={`reel-${item.data.id}`}
-              reel={item.data}
-              onOpen={(reelId) => onOpenReel?.(reelId)}
-              onProfileClick={(userId) => onProfileClick?.(Number(userId))}
-            />
+            <article key={`reel-${reel?.id || index}`} className="w-full relative bg-[#0F172A] border-b-[8px] border-[#050B18]">
+              <InstagramVideoCard
+                post={reelAsPost}
+                author={authorObj}
+                currentUser={currentUser}
+                users={users}
+                stories={stories}
+                autoplay={false}
+                onProfileClick={(userId) => onProfileClick?.(Number(userId))}
+                onReact={(p, rType) => onReact?.(p, rType)}
+                onShare={(postId, newCount) => onShare?.(postId, newCount)}
+                onVideoClick={() => {
+                  if (onVideoClick) {
+                    onVideoClick(reelAsPost);
+                  } else if (onOpenReel) {
+                    onOpenReel(reel?.id);
+                  }
+                }}
+                isFollowing={isFollowing}
+                onFollow={() => onFollow?.(authorId)}
+                onHashtagClick={onHashtagClick}
+              />
+            </article>
           );
         }
 

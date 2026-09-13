@@ -9,7 +9,6 @@ import {
   ShareBottomSheet,
   PeopleYouMayKnowGrid,
   GroupsYouMayJoinCard,
-  ReelFeedCard,
   FeedItem,
   Feed,
 } from './components/Feed';

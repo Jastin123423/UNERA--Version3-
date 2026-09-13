@@ -29,7 +29,6 @@ import {
   getMarketplacePriceLine,
   normalizeEventFromFeed,
   Post,
-  ReelFeedCard,
   normalizeReelFromFeed,
   formatReelCount,
   getReelAuthorName,
