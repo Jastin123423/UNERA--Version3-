@@ -31,6 +31,7 @@ import {
   MemoriesPage,
   SuggestedProfilesPage,
 } from './components/MenuPages';
+import { SavedPostsPage } from './components/SavedPostsPage';
 import { HelpSupportPage } from './components/HelpSupport';
 import { CreateEventModal } from './components/Events';
 import { BrandsPage } from './components/Brands';
@@ -2288,6 +2289,8 @@ export type View =
   | 'home'
   | 'reels'
   | 'marketplace'
+  | 'saved-posts'
+  | 'saved'
   | 'groups'
   | 'brands'
   | 'music'
@@ -5256,6 +5259,10 @@ const navigateTo = useCallback((target: View) => {
       break;
     case 'story-feed':
       navigate('/story-feed');
+      break;
+    case 'saved-posts':
+    case 'saved':
+      navigate('/saved');
       break;
     default:
       navigate('/');
@@ -10463,6 +10470,7 @@ return (
             onReelsClick={() => navigateTo('reels')}
             onMarketplaceClick={() => navigateTo('marketplace')}
             onGroupsClick={() => navigateTo('groups')}
+            onSavedPostsClick={() => navigateTo('saved-posts')}
           />
         </div>
       )}
@@ -10842,6 +10850,20 @@ return (
             groups={groups}
             brands={brands}
             chats={chats}
+            onBack={goBack}
+          />
+        )}
+
+        {(view === 'saved-posts' || view === 'saved') && (
+          <SavedPostsPage
+            currentUser={currentUser}
+            users={users}
+            onProfileClick={(id: number) => openProfile(id)}
+            onReact={(postId: number, type: ReactionType) => onReactPost(postId, type)}
+            onShare={(post: any) => handleOpenShareSheet(post)}
+            onViewImage={setFullScreenImage}
+            onOpenComments={handleOpenComments}
+            onVideoClick={handleVideoClick}
             onBack={goBack}
           />
         )}

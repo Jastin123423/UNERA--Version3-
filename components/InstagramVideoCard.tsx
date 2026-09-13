@@ -1,6 +1,20 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { apiFetch } from '../utils/api';
 import { safeUserId, avatarFrom, formatRelativeTime } from './Feed';
+import { useIsPostSaved, toggleSavePost } from '../utils/savedPosts';
+
+const formatCount = (count: number): string => {
+  if (!count || count <= 0) return '0';
+  if (count >= 1000000) {
+    const val = (count / 1000000).toFixed(1);
+    return `${val.endsWith('.0') ? val.slice(0, -2) : val}M`;
+  }
+  if (count >= 1000) {
+    const val = (count / 1000).toFixed(1);
+    return `${val.endsWith('.0') ? val.slice(0, -2) : val}K`;
+  }
+  return count.toString();
+};
 
 interface InstagramVideoCardProps {
   post: any;
@@ -148,7 +162,7 @@ export const InstagramVideoCard: React.FC<InstagramVideoCardProps> = ({
 
   // Caption expand state
   const [isCaptionExpanded, setIsCaptionExpanded] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const isSaved = useIsPostSaved(reelId || post?.id);
   const [showShareToast, setShowShareToast] = useState(false);
 
   const authorName = author?.name || post?.user?.name || post?.author_name || 'Creator';
@@ -683,7 +697,7 @@ export const InstagramVideoCard: React.FC<InstagramVideoCardProps> = ({
             {/* 1. Like / React */}
             <button
               onClick={handleLike}
-              className="flex items-center gap-1.5 text-white transition-transform active:scale-125 focus:outline-none"
+              className="flex items-center gap-1.5 text-white transition-transform active:scale-125 focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60"
               aria-label={isLiked ? 'Unlike' : 'Like'}
             >
               <i
@@ -691,34 +705,54 @@ export const InstagramVideoCard: React.FC<InstagramVideoCardProps> = ({
                   isLiked ? 'text-red-500' : 'text-[#F8FAFC] hover:text-red-400'
                 }`}
               ></i>
+              {likesCount > 0 && (
+                <span className="text-[14px] font-semibold text-[#F8FAFC]">
+                  {formatCount(likesCount)}
+                </span>
+              )}
             </button>
 
             {/* 2. Discuss / Comment */}
             <button
               onClick={handleOpenDiscuss}
-              className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-colors focus:outline-none"
+              className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-colors focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60"
               aria-label="Discuss & Comments"
             >
               <i className="far fa-comment text-[22px]"></i>
+              {commentsCount > 0 && (
+                <span className="text-[14px] font-semibold text-[#F8FAFC]">
+                  {formatCount(commentsCount)}
+                </span>
+              )}
             </button>
 
             {/* 3. Share */}
             <button
               onClick={handleShare}
-              className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none"
+              className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60"
               aria-label="Share reel"
             >
               <i className="far fa-paper-plane text-[21px]"></i>
+              {sharesCount > 0 && (
+                <span className="text-[14px] font-semibold text-[#F8FAFC]">
+                  {formatCount(sharesCount)}
+                </span>
+              )}
             </button>
           </div>
 
           {/* Bookmark / Save */}
           <button
-            onClick={() => setIsSaved(!isSaved)}
-            className="text-[#F8FAFC] hover:text-[#F59E0B] transition-colors focus:outline-none"
-            aria-label="Save"
+            onClick={() => toggleSavePost(post, true)}
+            className="flex items-center justify-center p-1 rounded-lg hover:bg-[#1E293B]/60 transition-transform active:scale-110 focus:outline-none"
+            aria-label={isSaved ? 'Remove from saved' : 'Save'}
+            title={isSaved ? 'Saved' : 'Save post'}
           >
-            <i className={`${isSaved ? 'fas text-[#F59E0B]' : 'far'} fa-bookmark text-[21px]`}></i>
+            <i
+              className={`${
+                isSaved ? 'fas text-[#F59E0B]' : 'far text-[#F8FAFC] hover:text-[#F59E0B]'
+              } fa-bookmark text-[21px] transition-colors`}
+            ></i>
           </button>
         </div>
 

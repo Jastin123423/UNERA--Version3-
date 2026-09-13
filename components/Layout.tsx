@@ -42,6 +42,7 @@ export const MenuOverlay: React.FC<MenuOverlayProps> = ({
 
   const menuItems = [
     { id: 'marketplace', title: 'Marketplace', icon: 'fas fa-store', color: '#1877F2' },
+    { id: 'saved-posts', title: 'Saved Posts', icon: 'fas fa-bookmark', color: '#F59E0B' },
     { id: 'events', title: 'Events', icon: 'fas fa-calendar-alt', color: '#2563EB' },
     { id: 'profiles', title: 'Profiles', icon: 'fas fa-user-friends', color: '#1877F2' },
     { id: 'groups', title: 'Groups', icon: 'fas fa-users', color: '#38BDF8' },
@@ -1082,6 +1083,7 @@ interface SidebarProps {
   onEventsClick?: () => void;
   onAdsClick?: () => void;
   onStoryFeedClick?: () => void;
+  onSavedPostsClick?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -1093,11 +1095,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onEventsClick,
   onAdsClick,
   onStoryFeedClick,
+  onSavedPostsClick,
 }) => {
   const items = [
     { id: 'friends', label: 'Friends', icon: 'fas fa-user-friends', color: '#1877F2' },
     { id: 'memories', label: 'Memories', icon: 'fas fa-history', color: '#818CF8' },
-    { id: 'saved', label: 'Saved', icon: 'fas fa-bookmark', color: '#F59E0B' },
+    { id: 'saved', label: 'Saved', icon: 'fas fa-bookmark', color: '#F59E0B', onClick: onSavedPostsClick },
     { id: 'story-feed', label: 'Story Feed', icon: 'fas fa-layer-group', color: '#34D399', onClick: onStoryFeedClick },
     { id: 'groups', label: 'Groups', icon: 'fas fa-users', color: '#38BDF8', onClick: onGroupsClick },
     { id: 'marketplace', label: 'Marketplace', icon: 'fas fa-store', color: '#1877F2', onClick: onMarketplaceClick },

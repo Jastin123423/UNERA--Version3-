@@ -33,6 +33,8 @@ export default function AppRouter() {
         <Route path="/story-feed" element={<App initialView="story-feed" />} />
         <Route path="/birthdays" element={<App initialView="birthdays" />} />
         <Route path="/memories" element={<App initialView="memories" />} />
+        <Route path="/saved" element={<App initialView="saved-posts" />} />
+        <Route path="/saved-posts" element={<App initialView="saved-posts" />} />
         <Route path="/tools" element={<App initialView="tools" />} />
         <Route path="/ads" element={<App initialView="ads" />} />
         <Route path="/brands" element={<App initialView="brands" />} />

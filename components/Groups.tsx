@@ -13,6 +13,7 @@ import {
   topReactionEmojis
 } from './Feed';
 import { CreateEventModal } from './Events';
+import { SavePostButton } from './SavePostButton';
 
 
 // ==================== NATIVE APP DETECTION ====================
@@ -705,8 +706,17 @@ const RecruitmentPost: React.FC<any> = (props) => {
         <div className="px-3.5 py-2.5 border-t border-[#1E293B] flex items-center justify-between">
           <div className="flex items-center gap-4">
             <ReactionButton currentUserReactions={localMyReaction} reactionCount={localReactionCount} onReact={handleLikeClick} isGuest={!currentUser} />
-            <button className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-colors focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60" onClick={() => currentUser ? handleOpenComments() : alert('Login first')} aria-label="Discuss & Comments" title="Discuss"><i className="far fa-comment text-[22px]"></i></button>
-            <button className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60" onClick={() => { if (!currentUser) { alert('Please login to share posts.'); return; } setShowShareSheet(true); }} aria-label="Share post" title="Share"><i className="far fa-paper-plane text-[21px]"></i></button>
+            <button className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-colors focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60" onClick={() => currentUser ? handleOpenComments() : alert('Login first')} aria-label="Discuss & Comments" title="Discuss">
+              <i className="far fa-comment text-[22px]"></i>
+              {commentCount > 0 && <span className="text-[14px] font-semibold text-[#F8FAFC]">{formatCount(commentCount)}</span>}
+            </button>
+            <button className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60" onClick={() => { if (!currentUser) { alert('Please login to share posts.'); return; } setShowShareSheet(true); }} aria-label="Share post" title="Share">
+              <i className="far fa-paper-plane text-[21px]"></i>
+              {shareCount > 0 && <span className="text-[14px] font-semibold text-[#F8FAFC]">{formatCount(shareCount)}</span>}
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <SavePostButton post={post} />
           </div>
         </div>
       </div>
@@ -837,8 +847,17 @@ const BuySellPost: React.FC<any> = (props) => {
         <div className="px-3.5 py-2.5 border-t border-[#1E293B] flex items-center justify-between">
           <div className="flex items-center gap-4">
             <ReactionButton currentUserReactions={localMyReaction} reactionCount={localReactionCount} onReact={handleLikeClick} isGuest={!currentUser} />
-            <button className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-colors focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60" onClick={() => currentUser ? handleOpenComments() : alert('Login first')} aria-label="Discuss & Comments" title="Discuss"><i className="far fa-comment text-[22px]"></i></button>
-            <button className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60" onClick={() => { if (!currentUser) { alert('Please login to share posts.'); return; } setShowShareSheet(true); }} aria-label="Share post" title="Share"><i className="far fa-paper-plane text-[21px]"></i></button>
+            <button className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-colors focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60" onClick={() => currentUser ? handleOpenComments() : alert('Login first')} aria-label="Discuss & Comments" title="Discuss">
+              <i className="far fa-comment text-[22px]"></i>
+              {commentCount > 0 && <span className="text-[14px] font-semibold text-[#F8FAFC]">{formatCount(commentCount)}</span>}
+            </button>
+            <button className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60" onClick={() => { if (!currentUser) { alert('Please login to share posts.'); return; } setShowShareSheet(true); }} aria-label="Share post" title="Share">
+              <i className="far fa-paper-plane text-[21px]"></i>
+              {shareCount > 0 && <span className="text-[14px] font-semibold text-[#F8FAFC]">{formatCount(shareCount)}</span>}
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <SavePostButton post={post} />
           </div>
         </div>
         <div className="px-2 py-3 border-t border-[#1E293B] grid grid-cols-2 gap-2">
@@ -968,8 +987,17 @@ const GeneralGroupPost: React.FC<any> = ({
         <div className="px-3.5 py-2.5 border-t border-[#1E293B] flex items-center justify-between">
           <div className="flex items-center gap-4">
             <ReactionButton currentUserReactions={finalMyReaction} reactionCount={finalReactionCount} onReact={handleLikeClick} isGuest={!currentUser} />
-            <button className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-colors focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60" onClick={() => currentUser ? handleOpenComments() : alert('Login first')} aria-label="Discuss & Comments" title="Discuss"><i className="far fa-comment text-[22px]"></i></button>
-            <button className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60" onClick={() => { if (!currentUser) { alert('Please login to share posts.'); return; } setShowShareSheet(true); }} aria-label="Share post" title="Share"><i className="far fa-paper-plane text-[21px]"></i></button>
+            <button className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-colors focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60" onClick={() => currentUser ? handleOpenComments() : alert('Login first')} aria-label="Discuss & Comments" title="Discuss">
+              <i className="far fa-comment text-[22px]"></i>
+              {commentCount > 0 && <span className="text-[14px] font-semibold text-[#F8FAFC]">{formatCount(commentCount)}</span>}
+            </button>
+            <button className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60" onClick={() => { if (!currentUser) { alert('Please login to share posts.'); return; } setShowShareSheet(true); }} aria-label="Share post" title="Share">
+              <i className="far fa-paper-plane text-[21px]"></i>
+              {shareCount > 0 && <span className="text-[14px] font-semibold text-[#F8FAFC]">{formatCount(shareCount)}</span>}
+            </button>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <SavePostButton post={p} />
           </div>
         </div>
       </div>

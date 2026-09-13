@@ -2227,35 +2227,50 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
             <button
               onClick={handleReactionClick}
               className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-white/10 transition-all duration-200 active:scale-95"
+              aria-label="React to story"
             >
               {activeReaction ? (
-                <span className="text-[22px]">{activeReaction.emoji}</span>
+                userReaction === 'love' || userReaction === 'like' ? (
+                  <i className="fas fa-heart text-[22px] text-red-500"></i>
+                ) : (
+                  <span className="text-[22px]">{activeReaction.emoji}</span>
+                )
+              ) : userReaction ? (
+                <i className="fas fa-heart text-[22px] text-red-500"></i>
               ) : (
-                <SparkReactIcon size={26} />
+                <i className="far fa-heart text-[22px] text-white"></i>
               )}
-              <span className="text-[17px] font-bold text-white/90">
-                {reactionCount > 0 ? fmtCount(reactionCount) : ''}
-              </span>
+              {reactionCount > 0 && (
+                <span className="text-[15px] font-semibold text-white">
+                  {fmtCount(reactionCount)}
+                </span>
+              )}
             </button>
 
             <button
               onClick={handleComment}
-              className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-white/10 transition-all duration-200 active:scale-95"
+              className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-white/10 transition-all duration-200 active:scale-95 text-white hover:text-[#38BDF8]"
+              aria-label="Discuss & Comments"
             >
-              <DiscussSignalIcon size={26} color="#1877F2" />
-              <span className="text-[17px] font-bold text-white/90">
-                {commentCount > 0 ? fmtCount(commentCount) : ''}
-              </span>
+              <i className="far fa-comment text-[22px]"></i>
+              {commentCount > 0 && (
+                <span className="text-[15px] font-semibold text-white">
+                  {fmtCount(commentCount)}
+                </span>
+              )}
             </button>
 
             <button
               onClick={handleShare}
-              className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-white/10 transition-all duration-200 active:scale-95"
+              className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-white/10 transition-all duration-200 active:scale-95 text-white hover:text-[#38BDF8]"
+              aria-label="Share story"
             >
-              <i className="fas fa-share text-[20px] text-white/80"></i>
-              <span className="text-[17px] font-bold text-white/90">
-                {shareCount > 0 ? fmtCount(shareCount) : ''}
-              </span>
+              <i className="far fa-paper-plane text-[21px]"></i>
+              {shareCount > 0 && (
+                <span className="text-[15px] font-semibold text-white">
+                  {fmtCount(shareCount)}
+                </span>
+              )}
             </button>
           </div>
         </div>

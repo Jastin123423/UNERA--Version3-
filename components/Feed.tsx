@@ -35,6 +35,7 @@ import {
   updateCachedComment,
 } from '../utils/dataCache';
 import { InstagramVideoCard } from './InstagramVideoCard';
+import { SavePostButton } from './SavePostButton';
 //====================TYPE DEFINITION =============
 export type FeedItem =
   | { kind: 'post'; data: any; created_at?: string }
@@ -4989,6 +4990,19 @@ export const EventFeedCard = memo(
  * ✅ REACTION BUTTON
  * =========================
  */
+const formatReactionCount = (count: number): string => {
+  if (!count || count <= 0) return '0';
+  if (count >= 1000000) {
+    const val = (count / 1000000).toFixed(1);
+    return `${val.endsWith('.0') ? val.slice(0, -2) : val}M`;
+  }
+  if (count >= 1000) {
+    const val = (count / 1000).toFixed(1);
+    return `${val.endsWith('.0') ? val.slice(0, -2) : val}K`;
+  }
+  return count.toString();
+};
+
 export const ReactionButton = memo(
   ({
     currentUserReactions,
@@ -5158,6 +5172,11 @@ export const ReactionButton = memo(
             <i className="fas fa-heart text-[22px] text-red-500 transition-transform duration-300"></i>
           ) : (
             <i className="far fa-heart text-[22px] text-[#F8FAFC] hover:text-red-400 transition-colors"></i>
+          )}
+          {reactionCount > 0 && (
+            <span className="text-[14px] font-semibold text-[#F8FAFC]">
+              {formatReactionCount(reactionCount)}
+            </span>
           )}
         </button>
       </div>
@@ -6027,6 +6046,11 @@ export const Post = memo(
                       title="Discuss"
                     >
                       <i className="far fa-comment text-[22px]"></i>
+                      {commentCount > 0 && (
+                        <span className="text-[14px] font-semibold text-[#F8FAFC]">
+                          {formatCount(commentCount)}
+                        </span>
+                      )}
                     </button>
                     <button
                       type="button"
@@ -6042,9 +6066,17 @@ export const Post = memo(
                       title="Share"
                     >
                       <i className="far fa-paper-plane text-[21px]"></i>
+                      {shareCount > 0 && (
+                        <span className="text-[14px] font-semibold text-[#F8FAFC]">
+                          {formatCount(shareCount)}
+                        </span>
+                      )}
                     </button>
                   </div>
-                  {pushButton && <div className="ml-2">{pushButton}</div>}
+                  <div className="flex items-center gap-1.5">
+                    <SavePostButton post={p} />
+                    {pushButton && <div className="ml-1">{pushButton}</div>}
+                  </div>
                 </div>
               </>
             ) : (
@@ -6279,6 +6311,11 @@ export const Post = memo(
                       title="Discuss"
                     >
                       <i className="far fa-comment text-[22px]"></i>
+                      {commentCount > 0 && (
+                        <span className="text-[14px] font-semibold text-[#F8FAFC]">
+                          {formatCount(commentCount)}
+                        </span>
+                      )}
                     </button>
                     <button
                       type="button"
@@ -6294,9 +6331,17 @@ export const Post = memo(
                       title="Share"
                     >
                       <i className="far fa-paper-plane text-[21px]"></i>
+                      {shareCount > 0 && (
+                        <span className="text-[14px] font-semibold text-[#F8FAFC]">
+                          {formatCount(shareCount)}
+                        </span>
+                      )}
                     </button>
                   </div>
-                  {pushButton && <div className="ml-2">{pushButton}</div>}
+                  <div className="flex items-center gap-1.5">
+                    <SavePostButton post={p} />
+                    {pushButton && <div className="ml-1">{pushButton}</div>}
+                  </div>
                 </div>
               </>
             )}
@@ -8793,8 +8838,8 @@ export const Feed = memo(({
         const isFollowing = checkIsFollowing?.(postAuthorId) || false;
         const isPostOwner = currentUser && Number(currentUser.id) === postAuthorId;
         const isAdminUser = currentUser && currentUser.role === "admin";
-        const showPushButton = (isPostOwner || isAdminUser) && onPushMore;
-        const isPushed = pushedPosts?.[post.id] || false;
+        const isPushed = Boolean(pushedPosts?.[post.id] || (post as any)?.is_pushed || (post as any)?.pushed);
+        const showPushButton = (isPostOwner || isAdminUser) && onPushMore && !isPushed;
 
         const showFirstPymk =
           peopleYouMayKnow &&
@@ -8842,10 +8887,9 @@ export const Feed = memo(({
   pushButton={showPushButton ? (
     <button
       onClick={() => onPushMore?.(post.id)}
-      disabled={isPushed}
-      className="px-3 py-1 rounded-md text-sm font-semibold ml-2 bg-blue-100 text-blue-600 hover:bg-blue-200 disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
+      className="px-3 py-1 rounded-md text-sm font-semibold ml-2 bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
     >
-      {isPushed ? "Pushed" : "Push More"}
+      Push
     </button>
   ) : undefined}
 />

@@ -1337,10 +1337,19 @@ export const GlobalAudioPlayer: React.FC<GlobalAudioPlayerProps> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [expanded, setExpanded] = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [showShare, setShowShare] = useState(false);
   const [downloadingTrackId, setDownloadingTrackId] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
+  const [downloadToast, setDownloadToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
+  const toastTimeoutRef = useRef<any>(null);
+
+  const showDownloadToast = (message: string, type: 'success' | 'info' | 'error' = 'info') => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setDownloadToast({ message, type });
+    toastTimeoutRef.current = setTimeout(() => {
+      setDownloadToast(null);
+    }, 3200);
+  };
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastUrlRef = useRef<string | null>(null);
   const playPromiseRef = useRef<Promise<void> | null>(null);
@@ -1351,6 +1360,7 @@ export const GlobalAudioPlayer: React.FC<GlobalAudioPlayerProps> = ({
 
   useEffect(() => {
     return () => {
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
@@ -1514,38 +1524,10 @@ useEffect(() => {
     onClose();
   };
 
-  const handleReact = (type: ReactionType) => {
-    if (currentTrack && onReact) {
-      onReact(currentTrack, type);
-    }
-  };
-
-  const handleOpenComments = () => {
-    if (!currentUser) {
-      alert('Please login to comment.');
-      return;
-    }
-    if (currentTrack) {
-      onOpenComments?.(currentTrack);
-      setShowComments(true);
-    }
-  };
-
-  const handleShare = () => {
-    if (!currentUser) {
-      alert('Please login to share.');
-      return;
-    }
-    if (currentTrack) {
-      onShare?.(currentTrack);
-      setShowShare(true);
-    }
-  };
-
   const downloadCurrentTrack = async (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (!currentTrack?.url) {
-      alert('Download URL not found.');
+      showDownloadToast('Audio URL not available for download', 'error');
       return;
     }
     const trackId = String(currentTrack.id);
@@ -1554,45 +1536,43 @@ useEffect(() => {
     setDownloadingTrackId(trackId);
     setDownloadProgress(0);
     
-    try {
-      const displayUser = ownerUser || uploaderProfile;
-      const artistName = displayUser 
-        ? (displayUser.name || displayUser.username || currentTrack.artist)
-        : currentTrack.artist;
-      
-      const cleanArtist = artistName
-        .replace(/[^\w\s.-]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      
-      const cleanTitle = (currentTrack.title || 'unera-audio')
-        .replace(/[^\w\s.-]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-      
-      const fileName = `${cleanArtist} - ${cleanTitle}.mp3`;
-      
-      console.log('📥 Downloading:', fileName);
-      
-      if (isUneraNativeApp() && (window as any).UneraNative?.postMessage) {
+    const displayUser = ownerUser || uploaderProfile;
+    const artistName = displayUser 
+      ? (displayUser.name || displayUser.username || currentTrack.artist)
+      : currentTrack.artist;
+    
+    const cleanArtist = (artistName || 'Artist')
+      .replace(/[^\w\s.-]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    const cleanTitle = (currentTrack.title || 'Track')
+      .replace(/[^\w\s.-]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    const fileName = `${cleanArtist || 'Artist'} - ${cleanTitle || 'Track'}.mp3`;
+    
+    // 1. Native app download support
+    if (isUneraNativeApp() && (window as any).UneraNative?.postMessage) {
+      try {
         const progressHandler = (event: any) => {
           const data = event.detail;
           if (data && data.fileName === fileName) {
-            const progress = data.progress || 0;
+            const progress = Math.min(100, Math.max(0, data.progress || 0));
             setDownloadProgress(progress);
-            console.log(`📥 Download progress: ${progress}%`);
           }
         };
         
         const completeHandler = (event: any) => {
           const data = event.detail;
           if (data && data.fileName === fileName) {
-            console.log('✅ Download complete:', data.localPath);
             setDownloadProgress(100);
+            showDownloadToast(`Downloaded "${fileName}"`, 'success');
             setTimeout(() => {
               setDownloadingTrackId(null);
               setDownloadProgress(0);
-            }, 1000);
+            }, 1200);
             window.removeEventListener('uneraNativeDownloadProgress', progressHandler);
             window.removeEventListener('uneraNativeDownloadComplete', completeHandler);
             window.removeEventListener('uneraNativeDownloadError', errorHandler);
@@ -1601,15 +1581,12 @@ useEffect(() => {
         
         const errorHandler = (event: any) => {
           const data = event.detail;
-          if (data && data.message) {
-            console.error('❌ Download error:', data.message);
-            alert('Download failed. Please try again.');
-            setDownloadingTrackId(null);
-            setDownloadProgress(0);
-            window.removeEventListener('uneraNativeDownloadProgress', progressHandler);
-            window.removeEventListener('uneraNativeDownloadComplete', completeHandler);
-            window.removeEventListener('uneraNativeDownloadError', errorHandler);
-          }
+          showDownloadToast(data?.message || 'Download failed. Please try again.', 'error');
+          setDownloadingTrackId(null);
+          setDownloadProgress(0);
+          window.removeEventListener('uneraNativeDownloadProgress', progressHandler);
+          window.removeEventListener('uneraNativeDownloadComplete', completeHandler);
+          window.removeEventListener('uneraNativeDownloadError', errorHandler);
         };
         
         window.addEventListener('uneraNativeDownloadProgress', progressHandler);
@@ -1623,56 +1600,91 @@ useEffect(() => {
             fileName: fileName,
           })
         );
-        
         return;
+      } catch (nativeErr) {
+        console.warn('Native download failed, falling back to web download:', nativeErr);
       }
-      
-      console.log('🌐 Web download starting...');
-      
+    }
+    
+    // 2. High-performance Web download with real stream progress
+    showDownloadToast(`Downloading "${cleanTitle}"...`, 'info');
+    try {
+      setDownloadProgress(10);
       const response = await fetch(currentTrack.url, {
         mode: 'cors',
-        credentials: 'omit',
       });
       
-      if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`Download failed with status: ${response.status}`);
+      }
       
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      
+      const contentLength = response.headers.get('content-length');
+      let blob: Blob;
+
+      if (contentLength && response.body) {
+        const total = parseInt(contentLength, 10);
+        const reader = response.body.getReader();
+        const chunks: Uint8Array[] = [];
+        let received = 0;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) {
+            chunks.push(value);
+            received += value.length;
+            if (total > 0) {
+              setDownloadProgress(Math.min(98, Math.round((received / total) * 100)));
+            }
+          }
+        }
+
+        blob = new Blob(chunks, { type: 'audio/mpeg' });
+      } else {
+        setDownloadProgress(65);
+        blob = await response.blob();
+      }
+
       setDownloadProgress(100);
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
       
       setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
+        if (link.parentNode) link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
         setDownloadingTrackId(null);
         setDownloadProgress(0);
-      }, 2000);
+      }, 1500);
       
       onDownload(String(currentTrack.id));
-      console.log('✅ Web download complete');
+      showDownloadToast(`Downloaded "${fileName}"`, 'success');
     } catch (error) {
-      console.error('Download failed:', error);
-      
-      if (!isUneraNativeApp()) {
-        try {
-          console.log('🔄 Trying fallback: opening in new tab');
-          window.open(currentTrack.url, '_blank');
-          alert('Download started in new tab. If not, try right-click and "Save As"');
+      console.warn('Direct blob download failed, trying browser native download:', error);
+      try {
+        setDownloadProgress(95);
+        const link = document.createElement('a');
+        link.href = currentTrack.url;
+        link.download = fileName;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        
+        setTimeout(() => {
+          if (link.parentNode) link.parentNode.removeChild(link);
           setDownloadingTrackId(null);
           setDownloadProgress(0);
-        } catch (fallbackError) {
-          alert('Download failed. Please try again later.');
-          setDownloadingTrackId(null);
-          setDownloadProgress(0);
-        }
-      } else {
-        alert('Download failed. Please try again.');
+        }, 1500);
+        
+        onDownload(String(currentTrack.id));
+        showDownloadToast(`Download started for "${fileName}"`, 'success');
+      } catch (fallbackErr) {
+        console.error('All download methods failed:', fallbackErr);
+        showDownloadToast('Download could not be started. Please try again.', 'error');
         setDownloadingTrackId(null);
         setDownloadProgress(0);
       }
@@ -1699,15 +1711,35 @@ useEffect(() => {
 
   return (
     <>
+      {downloadToast && (
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[300] px-4 py-2.5 rounded-xl text-sm font-semibold shadow-2xl border flex items-center gap-2.5 transition-all ${
+          downloadToast.type === 'success' 
+            ? 'bg-[#0F172A] text-emerald-400 border-emerald-500/40 shadow-emerald-950/40' 
+            : downloadToast.type === 'error'
+            ? 'bg-[#0F172A] text-rose-400 border-rose-500/40 shadow-rose-950/40'
+            : 'bg-[#0F172A] text-[#38BDF8] border-[#38BDF8]/40 shadow-sky-950/40'
+        }`}>
+          <i className={`fas ${
+            downloadToast.type === 'success' 
+              ? 'fa-check-circle text-emerald-400' 
+              : downloadToast.type === 'error' 
+              ? 'fa-exclamation-circle text-rose-400' 
+              : 'fa-info-circle text-[#38BDF8]'
+          }`}></i>
+          <span>{downloadToast.message}</span>
+        </div>
+      )}
+
       <div
-        className={`fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#050B18] to-[#0B1120] transition-all duration-500 z-[160] shadow-2xl border-t border-[#1E293B] ${
-          expanded ? 'h-full' : 'h-24'
-        }`}
+        className={`fixed bottom-0 left-0 right-0 ${
+          expanded ? 'h-full bg-[#050B18]' : 'h-20 sm:h-22 bg-[#0F172A]'
+        } transition-all duration-300 z-[160] shadow-2xl border-t border-[#1E293B]`}
       >
         {expanded ? (
-          <div className="flex flex-col h-full w-full relative overflow-hidden bg-gradient-to-b from-[#0B1528] to-[#050B18]">
+          <div className="flex flex-col h-full w-full relative overflow-hidden bg-[#050B18]">
+            {/* Subtle atmospheric ambient glow matching feed dark palette */}
             <div
-              className="absolute inset-0 z-0 opacity-40 blur-3xl scale-150 pointer-events-none"
+              className="absolute inset-0 z-0 opacity-15 blur-3xl scale-125 pointer-events-none"
               style={{
                 backgroundImage: `url(${trackCover})`,
                 backgroundSize: 'cover',
@@ -1715,19 +1747,19 @@ useEffect(() => {
               }}
             ></div>
 
-            <div className="relative z-10 flex justify-between items-center p-4 pt-6 text-white">
+            {/* Header */}
+            <div className="relative z-10 flex justify-between items-center px-4 py-3 sm:py-4 bg-[#050B18]/90 backdrop-blur-md border-b border-[#1E293B] text-[#F8FAFC]">
               <button
                 onClick={() => setExpanded(false)}
-                className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center cursor-pointer transition-colors"
+                className="w-10 h-10 rounded-full hover:bg-[#1E293B] flex items-center justify-center cursor-pointer transition-colors text-[#94A3B8] hover:text-white"
+                aria-label="Minimize player"
               >
-                <i className="fas fa-chevron-down text-xl"></i>
+                <i className="fas fa-chevron-down text-lg"></i>
               </button>
 
               <div className="flex flex-col items-center">
-                <span className="text-xs font-medium text-gray-400">Now Playing</span>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-sm font-bold text-white max-w-[150px] truncate">{currentTrack.title}</span>
-                </div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#64748B]">Now Playing</span>
+                <span className="text-sm font-bold text-[#F8FAFC] max-w-[200px] sm:max-w-[320px] truncate">{currentTrack.title}</span>
               </div>
 
               <button
@@ -1735,22 +1767,18 @@ useEffect(() => {
                   e.stopPropagation();
                   onLike(String(currentTrack.id), currentTrack.type);
                 }}
-                className="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center cursor-pointer transition-colors"
+                className="w-10 h-10 rounded-full hover:bg-[#1E293B] flex items-center justify-center cursor-pointer transition-colors"
+                aria-label="Like track"
               >
-                <i className={`${isLiked ? 'fas text-[#F3425F]' : 'far'} fa-heart text-xl`}></i>
+                <i className={`${isLiked ? 'fas text-[#F43F5E]' : 'far text-[#94A3B8]'} fa-heart text-lg`}></i>
               </button>
             </div>
 
-            <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2">
+            {/* Center Album Art Vinyl & Track Info */}
+            <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-4 sm:py-6 overflow-y-auto">
               <div className="relative mb-6">
-                <div className="absolute inset-0 rounded-full animate-spin-slow" style={{
-                  background: 'conic-gradient(from 0deg, #1877F2, #F3425F, #45BD62, #F7B928, #1877F2)',
-                  filter: 'blur(8px)',
-                  opacity: 0.3,
-                }}></div>
-                
                 <div
-                  className={`relative w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] rounded-full border-[8px] sm:border-[12px] border-[#1A1A1A]/80 shadow-[0_0_80px_rgba(0,0,0,0.7)] overflow-hidden flex items-center justify-center ${
+                  className={`relative w-[210px] h-[210px] sm:w-[270px] sm:h-[270px] rounded-full border-[8px] sm:border-[10px] border-[#0F172A] shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden flex items-center justify-center ${
                     isPlaying ? 'animate-spin-slow' : ''
                   }`}
                   style={{ animationPlayState: isPlaying ? 'running' : 'paused' }}
@@ -1761,55 +1789,54 @@ useEffect(() => {
                     alt="Album Art" 
                   />
                   
-                  <div className="absolute w-10 h-10 bg-[#050B18] rounded-full border-4 border-[#1E293B] flex items-center justify-center">
-                    <div className="w-3 h-3 bg-[#1E293B] rounded-full"></div>
+                  <div className="absolute w-11 h-11 bg-[#050B18] rounded-full border-4 border-[#1E293B] flex items-center justify-center shadow-inner">
+                    <div className="w-3.5 h-3.5 bg-[#1E293B] rounded-full"></div>
                   </div>
                 </div>
                 
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                   <button
                     onClick={onTogglePlay}
-                    className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+                    className="w-16 h-16 bg-[#050B18]/70 border border-[#1E293B] backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-lg"
+                    aria-label={isPlaying ? 'Pause' : 'Play'}
                   >
-                    <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play'} text-white text-2xl ml-1`}></i>
+                    <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play ml-1'} text-white text-2xl`}></i>
                   </button>
                 </div>
               </div>
 
               <div className="text-center px-4 max-w-xl">
-                <h2 className="text-xl sm:text-2xl font-bold text-white mb-1 line-clamp-2">{currentTrack.title}</h2>
+                <h2 className="text-lg sm:text-xl font-bold text-[#F8FAFC] mb-1 line-clamp-2">{currentTrack.title}</h2>
                 
                 <div
-                  className="flex items-center justify-center gap-2 cursor-pointer group mt-1"
+                  className="inline-flex items-center justify-center gap-2 cursor-pointer group mt-1.5 px-3 py-1 rounded-full hover:bg-[#0F172A] border border-transparent hover:border-[#1E293B] transition-colors"
                   onClick={() => currentTrack.uploaderId && onArtistClick && onArtistClick(currentTrack.uploaderId)}
                 >
                   {profilePicture ? (
                     <img 
                       src={profilePicture} 
-                      className="w-6 h-6 rounded-full border border-white/30 object-cover group-hover:scale-110 transition-transform" 
+                      className="w-5 h-5 rounded-full border border-[#1E293B] object-cover group-hover:scale-105 transition-transform" 
                       alt="Profile" 
                     />
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-[#1877F2] to-[#F3425F] flex items-center justify-center text-white text-xs font-bold">
+                    <div className="w-5 h-5 rounded-full bg-[#1877F2] flex items-center justify-center text-white text-[10px] font-bold">
                       {displayName?.charAt(0) || 'U'}
                     </div>
                   )}
-                  <div className="text-left">
-                    <div className="flex items-center gap-1">
-                      <span className="text-white text-sm font-semibold">{displayName}</span>
-                      {displayUser?.isVerified && (
-                        <i className="fas fa-check-circle text-[#1877F2] text-xs"></i>
-                      )}
-                    </div>
-                    <span className="text-[#B0B3B8] text-xs">{userRole}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[#F8FAFC] text-sm font-semibold">{displayName}</span>
+                    {displayUser?.isVerified && (
+                      <i className="fas fa-check-circle text-[#1877F2] text-xs"></i>
+                    )}
                   </div>
+                  <span className="text-[#64748B] text-xs">• {userRole}</span>
                 </div>
 
                 {totalPlays > 0 && (
-                  <div className="mt-2">
-                    <div className="inline-flex items-center gap-1 bg-[#1877F2]/20 px-3 py-1 rounded-full">
+                  <div className="mt-2.5">
+                    <div className="inline-flex items-center gap-1.5 bg-[#0F172A] border border-[#1E293B] px-3 py-1 rounded-full">
                       <i className="fas fa-headphones text-xs text-[#1877F2]"></i>
-                      <span className="text-xs font-medium text-[#B0B3B8]">
+                      <span className="text-xs font-medium text-[#94A3B8]">
                         {totalPlaysLoading ? '...' : `${totalPlays.toLocaleString()} plays`}
                       </span>
                     </div>
@@ -1818,138 +1845,124 @@ useEffect(() => {
               </div>
             </div>
 
-            <div className="relative z-10 px-4 pb-2 bg-gradient-to-t from-black via-black/95 to-transparent">
-              <div className="mb-3">
-                <div className="flex justify-between text-xs text-[#B0B3B8] mb-1">
-                  <span>{formatTime(currentTime)}</span>
-                  <span>{formatTime(duration)}</span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={duration || 100}
-                  value={currentTime}
-                  onChange={handleSeek}
-                  className="w-full h-1 bg-gray-700/50 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white"
-                />
-              </div>
-
-              <div className="flex items-center justify-between px-2 mb-3">
-                <button
-                  onClick={() => setIsShuffling(!isShuffling)}
-                  className={`text-lg ${isShuffling ? 'text-[#1877F2]' : 'text-[#B0B3B8] hover:text-white'}`}
-                >
-                  <i className="fas fa-random"></i>
-                </button>
-
-                <button onClick={onPrevious} className="text-xl text-white hover:text-[#1877F2]">
-                  <i className="fas fa-step-backward"></i>
-                </button>
-
-                <button
-                  onClick={onTogglePlay}
-                  className="w-14 h-14 bg-gradient-to-r from-[#1877F2] to-[#2D8CFF] rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(24,119,242,0.5)] hover:scale-105 transition-transform"
-                >
-                  <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play ml-0.5'} text-white text-xl`}></i>
-                </button>
-
-                <button onClick={onNext} className="text-xl text-white hover:text-[#1877F2]">
-                  <i className="fas fa-step-forward"></i>
-                </button>
-
-                <button
-                  onClick={() => setIsRepeating(!isRepeating)}
-                  className={`text-lg ${isRepeating ? 'text-[#1877F2]' : 'text-[#B0B3B8] hover:text-white'}`}
-                >
-                  <i className="fas fa-redo"></i>
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between px-2 pb-2">
-                <button
-                  onClick={handleStop}
-                  className="flex items-center gap-1 text-[#B0B3B8] hover:text-white"
-                >
-                  <i className="fas fa-stop text-sm"></i>
-                  <span className="text-xs">Stop</span>
-                </button>
-
-                <div className="flex items-center gap-2">
-                  <i className="fas fa-volume-down text-[#B0B3B8] text-sm"></i>
+            {/* Bottom Controls Card matching Feed Dark Theme (#0F172A) */}
+            <div className="relative z-10 px-4 sm:px-6 pt-3 pb-6 sm:pb-8 bg-[#0F172A] border-t border-[#1E293B]">
+              <div className="max-w-xl mx-auto">
+                {/* Progress bar */}
+                <div className="mb-3">
+                  <div className="flex justify-between text-xs text-[#94A3B8] font-medium mb-1.5">
+                    <span>{formatTime(currentTime)}</span>
+                    <span>{formatTime(duration)}</span>
+                  </div>
                   <input
                     type="range"
                     min={0}
-                    max={1}
-                    step={0.01}
-                    value={volume}
-                    onChange={handleVolumeChange}
-                    className="w-24 h-1 bg-gray-700/50 rounded-lg appearance-none cursor-pointer"
+                    max={duration || 100}
+                    value={currentTime}
+                    onChange={handleSeek}
+                    className="w-full h-1.5 bg-[#1E293B] rounded-lg appearance-none cursor-pointer accent-[#1877F2] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#1877F2]"
                   />
-                  <i className="fas fa-volume-up text-[#B0B3B8] text-sm"></i>
                 </div>
 
-                <button 
-                  onClick={downloadCurrentTrack} 
-                  disabled={isDownloading}
-                  className="flex items-center gap-1 text-[#B0B3B8] hover:text-white disabled:opacity-70 relative group"
-                  title={isDownloading ? `Downloading ${downloadProgress}%` : 'Download'}
-                >
-                  <i className={`fas ${
-                    isDownloading ? 'fa-spinner fa-spin' : 'fa-download'
-                  } text-sm`}></i>
-                  <span className="text-xs">
-                    {isDownloading 
-                      ? (downloadProgress > 0 && downloadProgress < 100 ? `${downloadProgress}%` : 'Saving') 
-                      : 'Download'}
-                  </span>
-                  {isDownloading && downloadProgress > 0 && downloadProgress < 100 && (
-                    <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 whitespace-nowrap text-[10px] text-[#1877F2]">
-                      {downloadProgress}%
-                    </div>
-                  )}
-                </button>
-              </div>
-            </div>
+                {/* Primary controls */}
+                <div className="flex items-center justify-between px-2 mb-3">
+                  <button
+                    onClick={() => setIsShuffling(!isShuffling)}
+                    className={`p-2 rounded-lg transition-colors ${isShuffling ? 'text-[#1877F2]' : 'text-[#64748B] hover:text-[#F8FAFC]'}`}
+                    aria-label="Shuffle"
+                  >
+                    <i className="fas fa-random text-base"></i>
+                  </button>
 
-            <div className="relative z-10 px-4 py-3 border-t border-white/10 bg-black/60 mt-auto">
-              <div className="flex items-center justify-between max-w-md mx-auto">
-                <ReactionButton
-                  currentUserReactions={myReaction}
-                  reactionCount={reactionCount}
-                  onReact={handleReact}
-                  isGuest={!currentUser}
-                />
+                  <button 
+                    onClick={onPrevious} 
+                    className="p-2 text-[#94A3B8] hover:text-[#1877F2] transition-colors"
+                    aria-label="Previous track"
+                  >
+                    <i className="fas fa-step-backward text-xl"></i>
+                  </button>
 
-                <button
-                  onClick={handleOpenComments}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded hover:bg-white/10 transition-colors group"
-                >
-                  <DiscussSignalIcon size={26} color="#1877F2" />
-                  <span className="text-[17px] font-bold text-[#B0B3B8] group-hover:text-white">
-                    {commentCount > 0 ? formatCompactNumber(commentCount) : 'Discuss'}
-                  </span>
-                </button>
+                  <button
+                    onClick={onTogglePlay}
+                    className="w-14 h-14 bg-[#1877F2] hover:bg-[#166fe5] active:scale-95 rounded-full flex items-center justify-center shadow-lg shadow-[#1877F2]/30 hover:scale-105 transition-all"
+                    aria-label={isPlaying ? 'Pause' : 'Play'}
+                  >
+                    <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play ml-0.5'} text-white text-xl`}></i>
+                  </button>
 
-                <button
-                  onClick={handleShare}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded hover:bg-white/10 transition-colors group text-[#B0B3B8]"
-                >
-                  <i className="fas fa-share text-xl"></i>
-                  <span className="text-[17px] font-bold">
-                    {shareCount > 0 ? formatCompactNumber(shareCount) : 'Share'}
-                  </span>
-                </button>
+                  <button 
+                    onClick={onNext} 
+                    className="p-2 text-[#94A3B8] hover:text-[#1877F2] transition-colors"
+                    aria-label="Next track"
+                  >
+                    <i className="fas fa-step-forward text-xl"></i>
+                  </button>
+
+                  <button
+                    onClick={() => setIsRepeating(!isRepeating)}
+                    className={`p-2 rounded-lg transition-colors ${isRepeating ? 'text-[#1877F2]' : 'text-[#64748B] hover:text-[#F8FAFC]'}`}
+                    aria-label="Repeat"
+                  >
+                    <i className="fas fa-redo text-base"></i>
+                  </button>
+                </div>
+
+                {/* Secondary controls: Stop, Volume, and Download */}
+                <div className="flex items-center justify-between px-2 pt-1 border-t border-[#1E293B]/60">
+                  <button
+                    onClick={handleStop}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[#94A3B8] hover:text-white hover:bg-[#1E293B] transition-colors"
+                  >
+                    <i className="fas fa-stop text-xs"></i>
+                    <span className="text-xs font-medium">Stop</span>
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <i className="fas fa-volume-down text-[#64748B] text-xs"></i>
+                    <input
+                      type="range"
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      value={volume}
+                      onChange={handleVolumeChange}
+                      className="w-20 sm:w-28 h-1 bg-[#1E293B] rounded-lg appearance-none cursor-pointer accent-[#1877F2]"
+                    />
+                    <i className="fas fa-volume-up text-[#64748B] text-xs"></i>
+                  </div>
+
+                  <button 
+                    onClick={downloadCurrentTrack} 
+                    disabled={isDownloading}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+                      isDownloading 
+                        ? 'bg-[#1877F2]/20 text-[#38BDF8] border border-[#1877F2]/40' 
+                        : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1E293B]'
+                    }`}
+                    title={isDownloading ? `Downloading ${downloadProgress}%` : 'Download audio'}
+                  >
+                    <i className={`fas ${
+                      isDownloading ? 'fa-spinner fa-spin text-[#38BDF8]' : 'fa-download'
+                    } text-xs`}></i>
+                    <span className="text-xs font-medium">
+                      {isDownloading 
+                        ? (downloadProgress > 0 ? `${downloadProgress}%` : 'Saving...') 
+                        : 'Download'}
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between h-full px-4 bg-gradient-to-r from-[#050B18] to-[#0B1120] border-t border-[#1E293B]">
+          /* Mini Player Bar matching feed card dark theme (#0F172A) */
+          <div className="flex items-center justify-between h-full px-4 bg-[#0F172A] border-t border-[#1E293B]">
             <div 
-              className="flex items-center gap-3 flex-1 cursor-pointer overflow-hidden"
+              className="flex items-center gap-3 flex-1 cursor-pointer overflow-hidden mr-2"
               onClick={() => setExpanded(true)}
             >
-              <div className="relative">
-                <div className={`w-12 h-12 rounded-full overflow-hidden border-2 border-[#1E293B] ${isPlaying ? 'animate-spin-slow' : ''}`}>
+              <div className="relative flex-shrink-0">
+                <div className={`w-11 h-11 rounded-lg overflow-hidden border border-[#1E293B] ${isPlaying ? 'ring-2 ring-[#1877F2]/40' : ''}`}>
                   <img 
                     src={trackCover} 
                     alt="Album Art" 
@@ -1957,12 +1970,12 @@ useEffect(() => {
                   />
                 </div>
                 {isPlaying && (
-                  <div className="absolute -inset-1 border border-[#1877F2]/30 rounded-full animate-ping"></div>
+                  <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#1877F2] rounded-full ring-2 ring-[#0F172A] animate-pulse"></div>
                 )}
               </div>
 
               <div className="flex-1 min-w-0">
-                <h4 className="text-white font-semibold text-sm truncate">{currentTrack.title}</h4>
+                <h4 className="text-[#F8FAFC] font-semibold text-sm truncate">{currentTrack.title}</h4>
                 <div className="flex items-center gap-1 mt-0.5">
                   {profilePicture ? (
                     <img 
@@ -1971,69 +1984,74 @@ useEffect(() => {
                       alt="Profile"
                     />
                   ) : null}
-                  <span className="text-gray-400 text-xs truncate flex items-center gap-1">
+                  <span className="text-[#94A3B8] text-xs truncate flex items-center gap-1">
                     {displayName}
                     {displayUser?.isVerified && (
-                      <i className="fas fa-check-circle text-[8px] text-[#1877F2]"></i>
+                      <i className="fas fa-check-circle text-[9px] text-[#1877F2]"></i>
                     )}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onLike(String(currentTrack.id), currentTrack.type);
                 }}
-                className="text-base hover:scale-110 transition-transform"
+                className="w-8 h-8 rounded-full hover:bg-[#1E293B] flex items-center justify-center text-sm transition-transform active:scale-95"
+                aria-label="Like"
               >
-                <i className={`${isLiked ? 'fas text-[#F3425F]' : 'far'} fa-heart`}></i>
+                <i className={`${isLiked ? 'fas text-[#F43F5E]' : 'far text-[#94A3B8]'} fa-heart`}></i>
               </button>
 
-              <button onClick={onPrevious} className="text-base text-gray-400 hover:text-white">
+              <button 
+                onClick={onPrevious} 
+                className="w-8 h-8 rounded-full hover:bg-[#1E293B] flex items-center justify-center text-sm text-[#94A3B8] hover:text-white transition-colors"
+                aria-label="Previous"
+              >
                 <i className="fas fa-step-backward"></i>
               </button>
 
               <button
                 onClick={onTogglePlay}
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-                  isPlaying 
-                    ? 'bg-gradient-to-r from-[#F3425F] to-[#FF6B9D]' 
-                    : 'bg-gradient-to-r from-[#1877F2] to-[#2D8CFF]'
-                }`}
+                className="w-9 h-9 rounded-full bg-[#1877F2] hover:bg-[#166fe5] flex items-center justify-center transition-colors shadow-md shadow-[#1877F2]/30 active:scale-95"
+                aria-label={isPlaying ? 'Pause' : 'Play'}
               >
-                <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play ml-0.5'} text-white text-sm`}></i>
+                <i className={`fas ${isPlaying ? 'fa-pause' : 'fa-play ml-0.5'} text-white text-xs`}></i>
               </button>
 
-              <button onClick={onNext} className="text-base text-gray-400 hover:text-white">
+              <button 
+                onClick={onNext} 
+                className="w-8 h-8 rounded-full hover:bg-[#1E293B] flex items-center justify-center text-sm text-[#94A3B8] hover:text-white transition-colors"
+                aria-label="Next"
+              >
                 <i className="fas fa-step-forward"></i>
               </button>
 
               <button
                 onClick={downloadCurrentTrack}
                 disabled={isDownloading}
-                className="text-base disabled:opacity-70 relative"
-                title={isDownloading ? `Downloading ${downloadProgress}%` : 'Download'}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all ${
+                  isDownloading 
+                    ? 'bg-[#1877F2]/20 text-[#38BDF8]' 
+                    : 'text-[#94A3B8] hover:text-[#F8FAFC] hover:bg-[#1E293B]'
+                }`}
+                title={isDownloading ? `Downloading ${downloadProgress}%` : 'Download audio'}
+                aria-label="Download"
               >
                 {isDownloading ? (
-                  <div className="relative">
-                    <i className="fas fa-spinner fa-spin"></i>
-                    {downloadProgress > 0 && downloadProgress < 100 && (
-                      <span className="absolute -top-2 -right-3 text-[8px] font-bold text-[#1877F2]">
-                        {downloadProgress}
-                      </span>
-                    )}
-                  </div>
+                  <i className="fas fa-spinner fa-spin text-xs"></i>
                 ) : (
-                  <i className="fas fa-download"></i>
+                  <i className="fas fa-download text-xs"></i>
                 )}
               </button>
 
               <button
                 onClick={handleClose}
-                className="text-base text-gray-400 hover:text-red-500"
+                className="w-8 h-8 rounded-full hover:bg-rose-500/20 text-[#64748B] hover:text-rose-400 flex items-center justify-center text-sm transition-colors"
+                aria-label="Close"
               >
                 <i className="fas fa-times"></i>
               </button>
@@ -2057,28 +2075,6 @@ useEffect(() => {
           }
         `}</style>
       </div>
-
-      {currentTrack && (
-        <CommentsSheet
-          isOpen={showComments}
-          onClose={() => setShowComments(false)}
-          track={currentTrack}
-          currentUser={currentUser || null}
-          users={users}
-          onProfileClick={(id) => onArtistClick?.(id)}
-          onCommentAdded={() => {}}
-        />
-      )}
-      {currentTrack && (
-        <ShareBottomSheet
-          isOpen={showShare}
-          onClose={() => setShowShare(false)}
-          track={currentTrack}
-          currentUser={currentUser || null}
-          users={users}
-          groups={[]}
-        />
-      )}
     </>
   );
 };
