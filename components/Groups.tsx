@@ -396,13 +396,11 @@ const GalleryViewer: React.FC<{
         </div>
         <div className="flex items-center justify-between">
           <ReactionButton currentUserReactions={myReaction} reactionCount={reactionCount} onReact={onReact} isGuest={!currentUser} />
-          <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#1E293B] transition-colors text-[#94A3B8]" onClick={() => (currentUser ? onOpenComments() : alert("Login first"))}>
-            <DiscussSignalIcon size={26} color="#1877F2" />
-            <span className="text-[17px] font-medium">Discuss</span>
+          <button className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors text-[#F8FAFC] hover:text-[#38BDF8] focus:outline-none" onClick={() => (currentUser ? onOpenComments() : alert("Login first"))} aria-label="Discuss & Comments" title="Discuss">
+            <i className="far fa-comment text-[22px]"></i>
           </button>
-          <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#1E293B] transition-colors text-[#94A3B8]" onClick={() => (currentUser ? onShare() : alert("Please login to share posts."))}>
-            <i className="fas fa-share text-[20px]"></i>
-            <span className="text-[17px] font-medium">Share</span>
+          <button className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none" onClick={() => (currentUser ? onShare() : alert("Please login to share posts."))} aria-label="Share post" title="Share">
+            <i className="far fa-paper-plane text-[21px]"></i>
           </button>
         </div>
       </div>
@@ -704,8 +702,8 @@ const RecruitmentPost: React.FC<any> = (props) => {
         )}
         <div className="px-2 py-1 border-t border-[#1E293B] flex items-center justify-between">
           <ReactionButton currentUserReactions={localMyReaction} reactionCount={localReactionCount} onReact={handleLikeClick} isGuest={!currentUser} />
-          <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#1E293B] transition-colors group text-[#94A3B8]" onClick={() => currentUser ? handleOpenComments() : alert('Login first')}><DiscussSignalIcon size={26} color="#1877F2" /><span className="text-[17px] font-medium">Discuss</span></button>
-          <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#1E293B] transition-colors group text-[#94A3B8]" onClick={() => { if (!currentUser) { alert('Please login to share posts.'); return; } setShowShareSheet(true); }}><i className="fas fa-share text-[20px]"></i><span className="text-[17px] font-medium">Share</span></button>
+          <button className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors group text-[#F8FAFC] hover:text-[#38BDF8] focus:outline-none" onClick={() => currentUser ? handleOpenComments() : alert('Login first')} aria-label="Discuss & Comments" title="Discuss"><i className="far fa-comment text-[22px]"></i></button>
+          <button className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors group text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none" onClick={() => { if (!currentUser) { alert('Please login to share posts.'); return; } setShowShareSheet(true); }} aria-label="Share post" title="Share"><i className="far fa-paper-plane text-[21px]"></i></button>
         </div>
       </div>
       <ShareBottomSheet isOpen={showShareSheet} onClose={() => setShowShareSheet(false)} post={post} currentUser={currentUser} users={users} onShareComplete={handleShareComplete} />
@@ -834,8 +832,8 @@ const BuySellPost: React.FC<any> = (props) => {
         )}
         <div className="px-2 py-1 border-t border-[#1E293B] flex items-center justify-between">
           <ReactionButton currentUserReactions={localMyReaction} reactionCount={localReactionCount} onReact={handleLikeClick} isGuest={!currentUser} />
-          <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#1E293B] transition-colors group text-[#94A3B8]" onClick={() => currentUser ? handleOpenComments() : alert('Login first')}><DiscussSignalIcon size={26} color="#1877F2" /><span className="text-[17px] font-medium">Discuss</span></button>
-          <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#1E293B] transition-colors group text-[#94A3B8]" onClick={() => { if (!currentUser) { alert('Please login to share posts.'); return; } setShowShareSheet(true); }}><i className="fas fa-share text-[20px]"></i><span className="text-[17px] font-medium">Share</span></button>
+          <button className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors group text-[#F8FAFC] hover:text-[#38BDF8] focus:outline-none" onClick={() => currentUser ? handleOpenComments() : alert('Login first')} aria-label="Discuss & Comments" title="Discuss"><i className="far fa-comment text-[22px]"></i></button>
+          <button className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors group text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none" onClick={() => { if (!currentUser) { alert('Please login to share posts.'); return; } setShowShareSheet(true); }} aria-label="Share post" title="Share"><i className="far fa-paper-plane text-[21px]"></i></button>
         </div>
         <div className="px-2 py-3 border-t border-[#1E293B] grid grid-cols-2 gap-2">
           <button onClick={handleMessage} className="flex items-center justify-center gap-2 h-10 rounded-lg bg-[#1877F2] text-white font-bold hover:bg-[#166fe5] transition-colors"><i className="fas fa-comment"></i>Message</button>
@@ -963,8 +961,8 @@ const GeneralGroupPost: React.FC<any> = ({
         )}
         <div className="px-2 py-1 border-t border-[#1E293B] flex items-center justify-between">
           <ReactionButton currentUserReactions={finalMyReaction} reactionCount={finalReactionCount} onReact={handleLikeClick} isGuest={!currentUser} />
-          <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#1E293B] transition-colors group text-[#94A3B8]" onClick={() => currentUser ? handleOpenComments() : alert('Login first')}><DiscussSignalIcon size={26} color="#1877F2" /><span className="text-[17px] font-medium">Discuss</span></button>
-          <button className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-[#1E293B] transition-colors group text-[#94A3B8]" onClick={() => { if (!currentUser) { alert('Please login to share posts.'); return; } setShowShareSheet(true); }}><i className="fas fa-share text-[20px]"></i><span className="text-[17px] font-medium">Share</span></button>
+          <button className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors group text-[#F8FAFC] hover:text-[#38BDF8] focus:outline-none" onClick={() => currentUser ? handleOpenComments() : alert('Login first')} aria-label="Discuss & Comments" title="Discuss"><i className="far fa-comment text-[22px]"></i></button>
+          <button className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors group text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none" onClick={() => { if (!currentUser) { alert('Please login to share posts.'); return; } setShowShareSheet(true); }} aria-label="Share post" title="Share"><i className="far fa-paper-plane text-[21px]"></i></button>
         </div>
       </div>
       <ShareBottomSheet isOpen={showShareSheet} onClose={() => setShowShareSheet(false)} post={p} currentUser={currentUser} users={users} onShareComplete={handleShareComplete} />
