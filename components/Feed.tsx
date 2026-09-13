@@ -1594,32 +1594,34 @@ export const GalleryViewer = memo(
           </div>
 
           <div className="flex items-center justify-between">
-            <ReactionButton
-              currentUserReactions={myReaction}
-              reactionCount={reactionCount}
-              onReact={(type) => onReact(post, type)}
-              isGuest={!currentUser}
-            />
-            <button
-              type="button"
-              className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors group text-[#F8FAFC] hover:text-[#38BDF8] focus:outline-none"
-              onClick={() => (currentUser ? onOpenComments() : alert('Login first'))}
-              aria-label="Discuss & Comments"
-              title="Discuss"
-            >
-              <i className="far fa-comment text-[22px]"></i>
-            </button>
-            <button
-              type="button"
-              className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors group text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none"
-              onClick={() =>
-                currentUser ? onShare() : alert('Please login to share posts.')
-              }
-              aria-label="Share post"
-              title="Share"
-            >
-              <i className="far fa-paper-plane text-[21px]"></i>
-            </button>
+            <div className="flex items-center gap-4">
+              <ReactionButton
+                currentUserReactions={myReaction}
+                reactionCount={reactionCount}
+                onReact={(type) => onReact(post, type)}
+                isGuest={!currentUser}
+              />
+              <button
+                type="button"
+                className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-colors focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60"
+                onClick={() => (currentUser ? onOpenComments() : alert('Login first'))}
+                aria-label="Discuss & Comments"
+                title="Discuss"
+              >
+                <i className="far fa-comment text-[22px]"></i>
+              </button>
+              <button
+                type="button"
+                className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60"
+                onClick={() =>
+                  currentUser ? onShare() : alert('Please login to share posts.')
+                }
+                aria-label="Share post"
+                title="Share"
+              >
+                <i className="far fa-paper-plane text-[21px]"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -4589,35 +4591,35 @@ export const EventPost = memo(
             </div>
 
             <div
-              className="px-2 py-1 border-t border-white/10 flex items-center justify-between"
+              className="px-3.5 py-2.5 border-t border-white/10 flex items-center justify-between"
               onClick={(e) => e.stopPropagation()}
             >
-          <div className="flex-1">
-  <ReactionButton
-    currentUserReactions={(event as any).my_reaction || undefined}
-    reactionCount={Number((event as any).reactions_count || 0)}
-    onReact={handleReact}
-    isGuest={!currentUser}
-  />
-</div>
-              <button
-                type="button"
-                className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors group text-[#F8FAFC] hover:text-[#38BDF8] focus:outline-none"
-                onClick={handleOpenComments}
-                aria-label="Discuss & Comments"
-                title="Discuss"
-              >
-                <i className="far fa-comment text-[22px]"></i>
-              </button>
-              <button
-                type="button"
-                className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors group text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none"
-                onClick={handleShare}
-                aria-label="Share post"
-                title="Share"
-              >
-                <i className="far fa-paper-plane text-[21px]"></i>
-              </button>
+              <div className="flex items-center gap-4">
+                <ReactionButton
+                  currentUserReactions={(event as any).my_reaction || undefined}
+                  reactionCount={Number((event as any).reactions_count || 0)}
+                  onReact={handleReact}
+                  isGuest={!currentUser}
+                />
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-colors focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60"
+                  onClick={handleOpenComments}
+                  aria-label="Discuss & Comments"
+                  title="Discuss"
+                >
+                  <i className="far fa-comment text-[22px]"></i>
+                </button>
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60"
+                  onClick={handleShare}
+                  aria-label="Share post"
+                  title="Share"
+                >
+                  <i className="far fa-paper-plane text-[21px]"></i>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -5097,7 +5099,7 @@ export const ReactionButton = memo(
 
     return (
       <div
-        className="flex-1 relative group"
+        className="relative group"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onTouchStart={handleTouchStart}
@@ -5138,8 +5140,8 @@ export const ReactionButton = memo(
           onClick={handleClick}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
-          className={`w-full flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-all duration-200 active:scale-95 ${
-            isAnimating ? 'scale-110' : ''
+          className={`flex items-center gap-1.5 text-white transition-transform active:scale-125 focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60 ${
+            isAnimating ? 'scale-125' : ''
           }`}
           aria-label={activeReaction || currentUserReactions ? 'Unlike' : 'Like'}
           title="React"
@@ -6004,44 +6006,44 @@ export const Post = memo(
                   </div>
                 </div>
 
-                <div className="px-2 py-1 border-t border-white/10 flex items-center justify-between">
-                 
-<ReactionButton
-  currentUserReactions={finalMyReaction || undefined}
-  reactionCount={finalReactionCount}
-  onReact={handleReactClick}
-  isGuest={!currentUser}
-  postId={productId}
-/>
-                  
-                  <button
-                    type="button"
-                    className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors group text-[#F8FAFC] hover:text-[#38BDF8] focus:outline-none"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleOpenComments(e);
-                    }}
-                    aria-label="Discuss & Comments"
-                    title="Discuss"
-                  >
-                    <i className="far fa-comment text-[22px]"></i>
-                  </button>
-                  <button
-                    type="button"
-                    className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors group text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none"
-                    onClick={() => {
-                      if (!currentUser) {
-                        alert('Please login to share posts.');
-                        return;
-                      }
-                      setShowShareSheet(true);
-                    }}
-                    aria-label="Share post"
-                    title="Share"
-                  >
-                    <i className="far fa-paper-plane text-[21px]"></i>
-                  </button>
+                <div className="px-3.5 py-2.5 border-t border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <ReactionButton
+                      currentUserReactions={finalMyReaction || undefined}
+                      reactionCount={finalReactionCount}
+                      onReact={handleReactClick}
+                      isGuest={!currentUser}
+                      postId={productId}
+                    />
+                    <button
+                      type="button"
+                      className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-colors focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleOpenComments(e);
+                      }}
+                      aria-label="Discuss & Comments"
+                      title="Discuss"
+                    >
+                      <i className="far fa-comment text-[22px]"></i>
+                    </button>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60"
+                      onClick={() => {
+                        if (!currentUser) {
+                          alert('Please login to share posts.');
+                          return;
+                        }
+                        setShowShareSheet(true);
+                      }}
+                      aria-label="Share post"
+                      title="Share"
+                    >
+                      <i className="far fa-paper-plane text-[21px]"></i>
+                    </button>
+                  </div>
                   {pushButton && <div className="ml-2">{pushButton}</div>}
                 </div>
               </>
@@ -6257,43 +6259,43 @@ export const Post = memo(
                   </div>
                 </div>
 
-                <div className="px-2 py-1.5 border-t border-[#1E293B] flex items-center justify-between">
-
-              <ReactionButton
-  currentUserReactions={finalMyReaction || undefined}
-  reactionCount={finalReactionCount}
-  onReact={handleReactClick}
-  isGuest={!currentUser}
-  
-/>
-                  <button
-                    type="button"
-                    className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors group text-[#F8FAFC] hover:text-[#38BDF8] focus:outline-none"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleOpenComments(e);
-                    }}
-                    aria-label="Discuss & Comments"
-                    title="Discuss"
-                  >
-                    <i className="far fa-comment text-[22px]"></i>
-                  </button>
-                  <button
-                    type="button"
-                    className="flex-1 flex items-center justify-center h-10 rounded-xl hover:bg-[#1E293B] transition-colors group text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none"
-                    onClick={() => {
-                      if (!currentUser) {
-                        alert('Please login to share posts.');
-                        return;
-                      }
-                      setShowShareSheet(true);
-                    }}
-                    aria-label="Share post"
-                    title="Share"
-                  >
-                    <i className="far fa-paper-plane text-[21px]"></i>
-                  </button>
+                <div className="px-3.5 py-2.5 border-t border-[#1E293B] flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <ReactionButton
+                      currentUserReactions={finalMyReaction || undefined}
+                      reactionCount={finalReactionCount}
+                      onReact={handleReactClick}
+                      isGuest={!currentUser}
+                    />
+                    <button
+                      type="button"
+                      className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-colors focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleOpenComments(e);
+                      }}
+                      aria-label="Discuss & Comments"
+                      title="Discuss"
+                    >
+                      <i className="far fa-comment text-[22px]"></i>
+                    </button>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1.5 text-[#F8FAFC] hover:text-[#38BDF8] transition-transform active:scale-110 focus:outline-none p-1 rounded-lg hover:bg-[#1E293B]/60"
+                      onClick={() => {
+                        if (!currentUser) {
+                          alert('Please login to share posts.');
+                          return;
+                        }
+                        setShowShareSheet(true);
+                      }}
+                      aria-label="Share post"
+                      title="Share"
+                    >
+                      <i className="far fa-paper-plane text-[21px]"></i>
+                    </button>
+                  </div>
                   {pushButton && <div className="ml-2">{pushButton}</div>}
                 </div>
               </>
