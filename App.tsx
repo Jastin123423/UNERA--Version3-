@@ -18,7 +18,6 @@ import { UserProfile } from './components/UserProfile';
 import { MarketplacePage, ProductDetailModal } from './components/Marketplace';
 import { ReelsFeed } from './components/Reels';
 import { VideosPage } from './components/VideosPage';
-import { NativeMediaGalleryModal } from './components/NativeMediaGalleryModal';
 import {
   rankAndRotateVideos,
   mixFeedWithStrictVideoSpacing,
@@ -915,8 +914,17 @@ const normalizePost = (p: any): PostType => {
     typeof p?.mediaTypes === "string" ? (() => { try { return JSON.parse(p.mediaTypes); } catch { return []; } })() :
     [];
 
-  const mediaType = p?.media_type ?? p?.mediaType ?? (mediaTypes[0] ?? null);
-  const mediaUrl = p?.media_url ?? p?.mediaUrl ?? (mediaUrls[0] ?? null);
+  const rawMediaMeta = Array.isArray(p?.media) ? p.media : (Array.isArray(p?.media_meta) ? p.media_meta : []);
+  const videoFromMedia = rawMediaMeta.find((m: any) => m?.type === 'video')?.feed || rawMediaMeta.find((m: any) => m?.type === 'video')?.url;
+  const videoUrl = p?.video_url ?? p?.videoUrl ?? p?.video ?? videoFromMedia ?? null;
+  const feedUrl = p?.feed_url ?? p?.feedUrl ?? null;
+  const mediaUrl = p?.media_url ?? p?.mediaUrl ?? videoUrl ?? feedUrl ?? (mediaUrls[0] ?? null);
+  const isVideo =
+    p?.media_type === 'video' ||
+    p?.type === 'video' ||
+    Boolean(videoUrl) ||
+    (typeof mediaUrl === 'string' && /\.(mp4|webm|mov|m4v)(\?|$)/i.test(mediaUrl));
+  const mediaType = isVideo ? 'video' : (p?.media_type ?? p?.mediaType ?? (mediaTypes[0] ?? null));
 
   const resolvedId = safeNumber(p?.id ?? p?.post_id ?? p?.postId ?? p?.postID);
 
@@ -957,6 +965,7 @@ const normalizePost = (p: any): PostType => {
     content: safeString(p?.content),
 
     media_url: mediaUrl,
+    video_url: videoUrl || (isVideo ? mediaUrl : null),
     media_type: mediaType,
 
     media_urls: mediaUrls.length ? mediaUrls : (mediaUrl ? [mediaUrl] : []),
@@ -3372,8 +3381,8 @@ const mixedFeedItems = useMemo(() => {
   const [showCreateReelModal, setShowCreateReelModal] = useState(false);
   const [showCreateEventModal, setShowCreateEventModal] = useState(false);
   const [showRecorder, setShowRecorder] = useState(false);
-  const [showNativeGallery, setShowNativeGallery] = useState(false);
-  const [nativeGalleryFilter, setNativeGalleryFilter] = useState<'all' | 'videos' | 'photos'>('all');
+  const phonePhotoInputRef = useRef<HTMLInputElement>(null);
+  const phoneVideoInputRef = useRef<HTMLInputElement>(null);
   const [pendingPostMedia, setPendingPostMedia] = useState<{
     files?: File[];
     previews?: string[];
@@ -5748,8 +5757,12 @@ const createMarketplacePost = useCallback(
     const requestId = ++reelsRequestIdRef.current;
     
     try {
-      const data = await apiFetch('/api/reels').catch(() => []);
+      const [data, postsData] = await Promise.all([
+        apiFetch('/api/reels').catch(() => []),
+        apiFetch('/api/posts').catch(() => []),
+      ]);
       const reelsList = safeArray(data?.reels ?? data);
+      const postsList = safeArray(postsData?.posts ?? postsData);
       
       const normalizedReels = reelsList.map((reel: any) => {
         const normalized = normalizeReel(reel);
@@ -5766,6 +5779,49 @@ const createMarketplacePost = useCallback(
           videoUrl: normalized.video_url_medium || normalized.video_url || normalized.video_url_low || '',
           video_url: normalized.video_url_medium || normalized.video_url || normalized.video_url_low || '',
         };
+      });
+
+      // Extract all videos from posts.ts so every video in posts is shown
+      postsList.forEach((post: any) => {
+        const rawMedia = Array.isArray(post?.media) ? post.media : (Array.isArray(post?.media_meta) ? post.media_meta : []);
+        const vFromMedia = rawMedia.find((m: any) => m?.type === 'video')?.feed || rawMedia.find((m: any) => m?.type === 'video')?.url;
+        const vUrl =
+          post?.video_url ||
+          vFromMedia ||
+          (post?.media_type === 'video' ? post?.feed_url || post?.media_url : null) ||
+          (typeof post?.feed_url === 'string' && post.feed_url.match(/\.(mp4|webm|mov|m4v)/i) ? post.feed_url : null) ||
+          (typeof post?.media_url === 'string' && post.media_url.match(/\.(mp4|webm|mov|m4v)/i) ? post.media_url : null);
+
+        if (vUrl) {
+          const alreadyExists = normalizedReels.some(
+            (r: any) => (r.videoUrl || r.video_url) === vUrl || String(r.id) === String(post.id)
+          );
+          if (!alreadyExists) {
+            const author = users.find((u) => Number(u.id) === Number(post.user_id)) || post.user || post.author;
+            normalizedReels.push({
+              id: Number(post.id) || Date.now(),
+              userId: Number(post.user_id) || 0,
+              user_id: Number(post.user_id) || 0,
+              author: author?.name || 'User',
+              author_name: author?.name || 'User',
+              avatar: author?.profile_image_url || '',
+              avatar_url: author?.profile_image_url || '',
+              verified: Boolean(author?.is_verified),
+              videoUrl: vUrl,
+              video_url: vUrl,
+              video_url_medium: vUrl,
+              video_url_low: vUrl,
+              thumbnail_url: post.thumb_url || rawMedia[0]?.thumb || '',
+              caption: post.content || '',
+              content: post.content || '',
+              likes_count: post.likesCount || post.reactions_count || 0,
+              likesCount: post.likesCount || post.reactions_count || 0,
+              views: post.views || 0,
+              created_at: post.created_at || new Date().toISOString(),
+              source: 'post',
+            } as any);
+          }
+        }
       });
       
       if (!isMountedRef.current) return;
@@ -6413,62 +6469,58 @@ const createReel = useCallback(async (
           const data = await apiFetch(`/api/feeds?userId=${viewer.id}&limit=50`);
           const rows = safeArray<any>(data?.feed);
 
-          if (!rows.length) {
-            if (lastGoodPostsRef.current.length) setPosts(lastGoodPostsRef.current);
-            if (!feedHydrated) setFeedHydrated(true);
-            return;
-          }
+          if (rows.length > 0) {
+            setUsers((prev) => {
+              const map = new Map<number, User>();
+              safeArray(prev).forEach((u) => map.set(Number(u.id), normalizeUser(u)));
 
-          setUsers((prev) => {
-            const map = new Map<number, User>();
-            safeArray(prev).forEach((u) => map.set(Number(u.id), normalizeUser(u)));
+              rows.forEach((r) => {
+                const author = authorFromFeedRow(r);
+                if (!author?.id) return;
+                
+                const existing = map.get(author.id);
+                if (existing) {
+                  map.set(author.id, normalizeUser(mergeUserSafe(existing, author)));
+                } else {
+                  map.set(author.id, author);
+                }
+              });
 
-            rows.forEach((r) => {
-              const author = authorFromFeedRow(r);
-              if (!author?.id) return;
-              
-              const existing = map.get(author.id);
-              if (existing) {
-                map.set(author.id, normalizeUser(mergeUserSafe(existing, author)));
-              } else {
-                map.set(author.id, author);
-              }
+              return Array.from(map.values());
             });
 
-            return Array.from(map.values());
-          });
+            const normalized = rows.map(normalizeFeedRowToPost);
 
-          const normalized = rows.map(normalizeFeedRowToPost);
+            const unseen = normalized.filter((p: any) => !seen.has(Number(p.id)));
+            const seenOnes = normalized.filter((p: any) => seen.has(Number(p.id)));
 
-          const unseen = normalized.filter((p: any) => !seen.has(Number(p.id)));
-          const seenOnes = normalized.filter((p: any) => seen.has(Number(p.id)));
+            const ordered = diversifyFeed(
+              [...seededShuffle(unseen, seed), ...seededShuffle(seenOnes, seed ^ 0xabcddcba)],
+              seed
+            );
 
-          const ordered = diversifyFeed(
-            [...seededShuffle(unseen, seed), ...seededShuffle(seenOnes, seed ^ 0xabcddcba)],
-            seed
-          );
+            pushSeenIds(ordered.slice(0, 40).map((p: any) => Number(p.id)));
 
-          pushSeenIds(ordered.slice(0, 40).map((p: any) => Number(p.id)));
+            setPosts((prev) => {
+              const next = mergeFeed(prev, ordered);
+              lastGoodPostsRef.current = next;
+              stableFeedRef.current = next;
+              return next;
+            });
 
-          setPosts((prev) => {
-            const next = mergeFeed(prev, ordered);
-            lastGoodPostsRef.current = next;
-            stableFeedRef.current = next;
-            return next;
-          });
+            if (!feedHydrated) setFeedHydrated(true);
 
-          if (!feedHydrated) setFeedHydrated(true);
+            if (activeCommentsIdentity != null) {
+              const found = ordered.find((p: any) => getFeedKey(p) === activeCommentsIdentity);
+              if (found) setCommentPostSnapshot(found);
+            }
 
-          if (activeCommentsIdentity != null) {
-            const found = ordered.find((p: any) => getFeedKey(p) === activeCommentsIdentity);
-            if (found) setCommentPostSnapshot(found);
+            return;
           }
-
-          return;
         }
 
         const p = await apiFetch('/api/posts');
-        const normalized = safeArray(p).map(normalizePost);
+        const normalized = safeArray(p?.posts ?? p).map(normalizePost);
 
         if (normalized.length) {
           const unseen = normalized.filter((x: any) => !seen.has(Number(x.id)));
@@ -9045,42 +9097,51 @@ const createPost = useCallback(
     navigateTo('reels');
   }, [navigateTo]);
 
-  // Handle photo click - launches professional native gallery with music attachment
+  // Handle photo click - directly triggers phone gallery file picker
   const handlePhotoClick = useCallback(() => {
     if (!requireAuth('Creating posts')) return;
-    setNativeGalleryFilter('photos');
-    setShowNativeGallery(true);
+    if (phonePhotoInputRef.current) {
+      phonePhotoInputRef.current.value = '';
+      phonePhotoInputRef.current.click();
+    }
   }, [requireAuth]);
 
+  // Handle video click - directly triggers phone gallery video picker
   const handleVideoClickFromCreate = useCallback(() => {
     if (!requireAuth('Creating videos')) return;
-    setNativeGalleryFilter('videos');
-    setShowNativeGallery(true);
+    if (phoneVideoInputRef.current) {
+      phoneVideoInputRef.current.value = '';
+      phoneVideoInputRef.current.click();
+    }
   }, [requireAuth]);
 
-  // Handle native gallery proceed with media and attached music
-  // Implements the seamless short journey: Create Post -> Media Gallery -> Selected Media
-  const handleGalleryProceed = useCallback(
-    (data: {
-      files: File[];
-      mediaUrls: string[];
-      mediaType: 'image' | 'video' | 'mixed';
-      attachedMusic: any;
-      items?: any[];
-    }) => {
-      setShowNativeGallery(false);
-      setPendingPostMedia({
-        files: data.files || [],
-        previews: data.mediaUrls || [],
-        mediaUrls: data.mediaUrls || [],
-        mediaType: data.mediaType,
-        attachedMusic: data.attachedMusic,
-        items: data.items,
-      });
-      setShowCreatePostModal(true);
-    },
-    []
-  );
+  // When photos are picked directly from phone gallery
+  const handlePhonePhotoSelected = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const list = Array.from<File>(e.target.files || []);
+    if (!list.length) return;
+    const previews = list.map((f: File) => URL.createObjectURL(f));
+    setPendingPostMedia({
+      files: list,
+      previews,
+      mediaUrls: previews,
+      mediaType: 'image',
+    });
+    setShowCreatePostModal(true);
+  }, []);
+
+  // When video is picked directly from phone gallery
+  const handlePhoneVideoSelected = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const preview = URL.createObjectURL(file);
+    setPendingPostMedia({
+      files: [file],
+      previews: [preview],
+      mediaUrls: [preview],
+      mediaType: 'video',
+    });
+    setShowCreatePostModal(true);
+  }, []);
 
 const handleReelVideoSelected = useCallback(
   (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -11247,33 +11308,25 @@ return (
           setShowCreatePostModal(false);
           setShowCreateEventModal(true);
         }}
-        onPhotoClick={() => {
-          setShowCreatePostModal(false);
-          setNativeGalleryFilter('photos');
-          setShowNativeGallery(true);
-        }}
-        onVideoClick={() => {
-          setShowCreatePostModal(false);
-          setNativeGalleryFilter('videos');
-          setShowNativeGallery(true);
-        }}
       />
     )}
 
-    {showNativeGallery && currentUser && (
-      <NativeMediaGalleryModal
-        isOpen={showNativeGallery}
-        currentUser={currentUser}
-        songs={songs}
-        initialFilter={nativeGalleryFilter}
-        onClose={() => setShowNativeGallery(false)}
-        onProceed={handleGalleryProceed}
-        onOpenCamera={() => {
-          setShowNativeGallery(false);
-          setShowRecorder(true);
-        }}
-      />
-    )}
+    {/* Hidden inputs for direct phone gallery access */}
+    <input
+      type="file"
+      ref={phonePhotoInputRef}
+      className="hidden"
+      accept="image/*"
+      multiple
+      onChange={handlePhonePhotoSelected}
+    />
+    <input
+      type="file"
+      ref={phoneVideoInputRef}
+      className="hidden"
+      accept="video/*"
+      onChange={handlePhoneVideoSelected}
+    />
 
     {showRecorder && currentUser && (
       <Recorder

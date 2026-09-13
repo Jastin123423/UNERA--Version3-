@@ -3579,7 +3579,49 @@ const getPostMediaList = (p: any) => {
       });
     }
 
-    // ✅ STEP 3: Fallback to single media_url
+    // ✅ STEP 3: Fallback to media array or video_url/feed_url
+    if (!out.length && Array.isArray(p?.media) && p.media.length > 0) {
+      p.media.forEach((item: any) => {
+        const u = String(item?.feed || item?.full || item?.url || item?.thumb || '').trim();
+        if (u) {
+          out.push({
+            url: u,
+            thumb: String(item?.thumb || u),
+            feed: String(item?.feed || u),
+            full: String(item?.full || u),
+            kind: guessKind(u, item?.type || p?.media_type),
+          });
+        }
+      });
+    }
+
+    if (!out.length && p?.video_url) {
+      const v = String(p.video_url).trim();
+      if (v) {
+        out.push({
+          url: v,
+          thumb: p?.thumb_url || v,
+          feed: v,
+          full: v,
+          kind: 'video',
+        });
+      }
+    }
+
+    if (!out.length && p?.feed_url) {
+      const f = String(p.feed_url).trim();
+      if (f) {
+        out.push({
+          url: f,
+          thumb: p?.thumb_url || f,
+          feed: f,
+          full: f,
+          kind: guessKind(f, p?.media_type),
+        });
+      }
+    }
+
+    // ✅ STEP 4: Fallback to single media_url
     if (!out.length && p?.media_url) {
       const single = String(p.media_url).trim();
       if (single) {
@@ -6283,22 +6325,21 @@ export const Post = memo(
 
                 {!p.background && videoMedia.length > 0 && (
                   <div
-                    className="cursor-pointer relative h-[500px] bg-black"
+                    className="cursor-pointer relative min-h-[320px] max-h-[540px] bg-black rounded-lg overflow-hidden my-2"
                     onClick={() => onVideoClick(post)}
                   >
                     <video
                       src={videoMedia[0].url}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full max-h-[540px] object-contain bg-black"
                       preload="metadata"
                       playsInline
                       muted
-                      onError={(e) => {
-                        console.error('Failed to load video:', videoMedia[0].url);
-                        e.currentTarget.style.display = 'none';
-                      }}
+                      controls
                     />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <i className="fas fa-play text-white text-4xl opacity-50"></i>
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-14 h-14 rounded-full bg-black/60 flex items-center justify-center">
+                        <i className="fas fa-play text-white text-xl ml-1 opacity-80"></i>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -6871,21 +6912,13 @@ export const CreatePostModal = memo(
       };
     }, [previews]);
 
-    // ✅ Photo picker - works in app and web
+    // ✅ Photo picker - directly opens device/phone gallery
     const handleNativePhotoClick = () => {
-      if (onPhotoClick) {
-        onPhotoClick();
-        return;
-      }
       fileInputRef.current?.click();
     };
 
-    // ✅ Video picker - works in app and web
+    // ✅ Video picker - directly opens device/phone video gallery
     const handleNativeVideoClick = () => {
-      if (onVideoClick) {
-        onVideoClick();
-        return;
-      }
       videoInputRef.current?.click();
     };
 

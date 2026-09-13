@@ -367,28 +367,31 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   try {
-    if (!env.DB) {
-      return json(
-        { error: "D1 binding missing. Set Pages D1 binding name to DB." },
-        500
-      );
+    let rawList: any[] = [];
+    if (env?.DB) {
+      try {
+        const { results } = await env.DB.prepare(
+          "SELECT * FROM posts ORDER BY created_at DESC"
+        ).all();
+        if (Array.isArray(results) && results.length > 0) {
+          rawList = results;
+        }
+      } catch (dbErr) {
+        console.warn("DB query warning:", dbErr);
+      }
     }
 
-    // KEEP OLD LOGIC EXACTLY: broad fetch from posts only
-    const { results } = await env.DB.prepare(
-      "SELECT * FROM posts ORDER BY created_at DESC"
-    ).all();
-
-    const normalized = (Array.isArray(results) ? results : []).map((item: any) => {
+    const normalized = rawList.map((item: any) => {
       const media = normalizePostMedia(item);
 
       return {
         ...item,
         media,
         media_count: media.length,
-        thumb_url: media[0]?.thumb || null,
-        feed_url: media[0]?.feed || null,
-        full_url: media[0]?.full || null,
+        thumb_url: media[0]?.thumb || item.media_url || null,
+        feed_url: media[0]?.feed || item.media_url || null,
+        full_url: media[0]?.full || item.media_url || null,
+        video_url: item.video_url || (item.media_type === 'video' ? item.media_url : null) || (media.find((m: any) => m.type === 'video')?.feed || null),
       };
     });
 

@@ -48,21 +48,38 @@ export const VideosPage: React.FC<VideosPageProps> = ({
 
     // 1. Process feed posts that are videos
     posts.forEach((post) => {
+      const vUrl =
+        post?.video_url ||
+        (Array.isArray(post?.media)
+          ? post.media.find((m: any) => m?.type === 'video')?.feed ||
+            post.media.find((m: any) => m?.type === 'video')?.url
+          : null) ||
+        (post?.media_type === 'video' ? post?.feed_url || post?.media_url : null) ||
+        (typeof post?.feed_url === 'string' && post.feed_url.match(/\.(mp4|webm|mov|m4v|ogg)/i)
+          ? post.feed_url
+          : null) ||
+        (typeof post?.media_url === 'string' && post.media_url.match(/\.(mp4|webm|mov|m4v|ogg)/i)
+          ? post.media_url
+          : null) ||
+        (Array.isArray(post?.media_urls)
+          ? post.media_urls.find((u: string) => typeof u === 'string' && u.match(/\.(mp4|webm|mov|m4v)/i))
+          : null);
+
       const isVideo =
         post?.media_type === 'video' ||
         post?.type === 'video' ||
         post?.meta?.type === 'video' ||
-        (typeof post?.media_url === 'string' && post.media_url.match(/\.(mp4|webm|mov|m4v|ogg)/i)) ||
-        Boolean(post?.video_url);
+        Boolean(vUrl);
 
-      if (isVideo) {
-        const key = post?.media_url || post?.video_url || `post_${post?.id}`;
+      if (isVideo && (vUrl || post?.media_url)) {
+        const resolvedVideoUrl = vUrl || post?.media_url;
+        const key = resolvedVideoUrl || `post_${post?.id}`;
         if (!videoMap.has(key)) {
           videoMap.set(key, {
             ...post,
             source: 'post',
-            video_url: post?.video_url || post?.media_url,
-            media_url: post?.media_url || post?.video_url,
+            video_url: resolvedVideoUrl,
+            media_url: resolvedVideoUrl,
             created_at: post?.created_at || new Date().toISOString(),
           });
         }

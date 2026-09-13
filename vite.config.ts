@@ -2,6 +2,8 @@ import path from 'path';
 import { defineConfig, loadEnv, Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const devPosts: any[] = [];
+
 function apiDevPlugin(): Plugin {
   return {
     name: 'api-dev-middleware',
@@ -188,8 +190,31 @@ function apiDevPlugin(): Plugin {
         }
 
         if (pathname === '/api/reels') {
+          if (req.method === 'POST') {
+            res.statusCode = 200;
+            return res.end(JSON.stringify({ success: true, id: Date.now() }));
+          }
+          const videoPosts = devPosts.filter(
+            (p) => p.video_url || p.media_type === 'video' || p.type === 'video'
+          );
+          const reels = videoPosts.map((p) => ({
+            id: p.id,
+            reel_id: p.id,
+            video_url: p.video_url || p.media_url,
+            thumbnail_url: p.thumb_url || p.media_meta?.[0]?.thumb || '',
+            caption: p.content || '',
+            content: p.content || '',
+            author: p.user?.name || 'User',
+            author_name: p.user?.name || 'User',
+            avatar: p.user?.profile_image_url || '',
+            avatar_url: p.user?.profile_image_url || '',
+            verified: Boolean(p.user?.is_verified),
+            created_at: p.created_at,
+            likes_count: p.likesCount || 0,
+            views: p.views || 0,
+          }));
           res.statusCode = 200;
-          return res.end(JSON.stringify({ reels: [] }));
+          return res.end(JSON.stringify({ reels }));
         }
 
         if (pathname === '/api/stories') {
@@ -203,13 +228,36 @@ function apiDevPlugin(): Plugin {
         }
 
         if (pathname === '/api/posts') {
+          if (req.method === 'POST') {
+            let body = '';
+            req.on('data', (chunk) => {
+              body += chunk;
+            });
+            return req.on('end', () => {
+              try {
+                const parsed = JSON.parse(body || '{}');
+                const newPost = {
+                  id: Date.now(),
+                  post_id: Date.now(),
+                  ...parsed,
+                  created_at: new Date().toISOString(),
+                };
+                devPosts.unshift(newPost);
+                res.statusCode = 201;
+                return res.end(JSON.stringify({ success: true, post: newPost }));
+              } catch (e) {
+                res.statusCode = 400;
+                return res.end(JSON.stringify({ error: 'Invalid JSON' }));
+              }
+            });
+          }
           res.statusCode = 200;
-          return res.end(JSON.stringify([]));
+          return res.end(JSON.stringify(devPosts));
         }
 
         if (pathname === '/api/feeds') {
           res.statusCode = 200;
-          return res.end(JSON.stringify({ feed: [] }));
+          return res.end(JSON.stringify({ feed: devPosts }));
         }
 
         if (pathname === '/api/products') {
@@ -234,45 +282,50 @@ function apiDevPlugin(): Plugin {
 
         if (pathname === '/api/upload') {
           res.statusCode = 200;
-          const mockSampleVideo = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
-          const mockThumb = 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80';
           return res.end(
             JSON.stringify({
               success: true,
-              url: mockSampleVideo,
-              media_type: 'video',
+              url: '',
               media_urls: {
-                thumb: mockThumb,
-                feed: mockSampleVideo,
-                full: mockSampleVideo,
+                thumb: '',
+                feed: '',
+                full: '',
               },
               uploaded: {
-                thumbnail: { url: mockThumb },
-                feed: { url: mockSampleVideo },
-                original: { url: mockSampleVideo },
+                thumbnail: { url: '' },
+                feed: { url: '' },
+                original: { url: '' },
               },
             })
           );
         }
 
         if (pathname === '/api/reels' && req.method === 'POST') {
-          res.statusCode = 201;
-          return res.end(
-            JSON.stringify({
-              success: true,
-              reel: {
+          let body = '';
+          req.on('data', (chunk) => {
+            body += chunk;
+          });
+          return req.on('end', () => {
+            try {
+              const parsed = JSON.parse(body || '{}');
+              const newReel = {
                 id: Date.now(),
-                user_id: 1,
-                video_url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-                thumbnail_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
-                caption: 'Shared Reel',
-                song_name: 'Original Sound',
-                views: 1,
+                user_id: parsed.user_id || 1,
+                video_url: parsed.video_url || parsed.videoUrl || '',
+                thumbnail_url: parsed.thumbnail_url || parsed.thumbnailUrl || '',
+                caption: parsed.caption || '',
+                song_name: parsed.song_name || 'Original Sound',
+                views: 0,
                 shares: 0,
                 created_at: new Date().toISOString(),
-              },
-            })
-          );
+              };
+              res.statusCode = 201;
+              return res.end(JSON.stringify({ success: true, reel: newReel }));
+            } catch {
+              res.statusCode = 400;
+              return res.end(JSON.stringify({ error: 'Invalid JSON' }));
+            }
+          });
         }
 
         if (pathname.includes('/api/reels/') && pathname.endsWith('/react')) {
