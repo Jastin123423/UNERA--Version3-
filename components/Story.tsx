@@ -2222,21 +2222,21 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
             </div>
           )}
 
-          {/* Three horizontal buttons with numbers */}
-          <div className="flex items-center justify-between gap-2">
+          {/* Reaction, Discuss, Share icons grouped together like other posts */}
+          <div className="flex items-center gap-4 sm:gap-5 px-2">
             <button
               onClick={handleReactionClick}
-              className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-white/10 transition-all duration-200 active:scale-95"
+              className="flex items-center gap-1.5 h-10 px-2 rounded-lg hover:bg-white/10 transition-all duration-200 active:scale-95 focus:outline-none"
               aria-label="React to story"
             >
               {activeReaction ? (
                 userReaction === 'love' || userReaction === 'like' ? (
-                  <i className="fas fa-heart text-[22px] text-red-500"></i>
+                  <i className="fas fa-heart text-[22px] text-[#F43F5E]"></i>
                 ) : (
                   <span className="text-[22px]">{activeReaction.emoji}</span>
                 )
               ) : userReaction ? (
-                <i className="fas fa-heart text-[22px] text-red-500"></i>
+                <i className="fas fa-heart text-[22px] text-[#F43F5E]"></i>
               ) : (
                 <i className="far fa-heart text-[22px] text-white"></i>
               )}
@@ -2249,7 +2249,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
 
             <button
               onClick={handleComment}
-              className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-white/10 transition-all duration-200 active:scale-95 text-white hover:text-[#38BDF8]"
+              className="flex items-center gap-1.5 h-10 px-2 rounded-lg hover:bg-white/10 transition-all duration-200 active:scale-95 text-white hover:text-[#38BDF8] focus:outline-none"
               aria-label="Discuss & Comments"
             >
               <i className="far fa-comment text-[22px]"></i>
@@ -2262,7 +2262,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
 
             <button
               onClick={handleShare}
-              className="flex-1 flex items-center justify-center gap-2 h-10 rounded hover:bg-white/10 transition-all duration-200 active:scale-95 text-white hover:text-[#38BDF8]"
+              className="flex items-center gap-1.5 h-10 px-2 rounded-lg hover:bg-white/10 transition-all duration-200 active:scale-95 text-white hover:text-[#38BDF8] focus:outline-none"
               aria-label="Share story"
             >
               <i className="far fa-paper-plane text-[21px]"></i>
